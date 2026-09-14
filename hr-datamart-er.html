@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<!-- MAINTENANCE: Structural mart changes require updating docs/datamart-er.yml
+     and regenerating HR_DATAMART_ER.pdf (see docs/README.md). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HR Datamart ER — mart_checks</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 14mm 16mm;
+      @bottom-center {
+        content: "Mint HRM · HR Datamart ER · mart_checks · Page " counter(page) " of " counter(pages);
+        font-size: 8pt;
+        color: #666;
+      }
+    }
+    @page :first {
+      @bottom-center { content: none; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.35;
+      color: #141414;
+      margin: 0;
+    }
+    h1 { font-size: 22pt; font-weight: 600; margin: 0 0 6pt; }
+    h2 {
+      font-size: 13pt;
+      font-weight: 600;
+      margin: 18pt 0 8pt;
+      padding-bottom: 4pt;
+      border-bottom: 1px solid #ccc;
+      page-break-after: avoid;
+    }
+    h3 { font-size: 10.5pt; margin: 12pt 0 6pt; page-break-after: avoid; }
+    p.meta { color: #444; margin: 0 0 14pt; max-width: 95%; }
+    .cover { page-break-after: always; padding-top: 8mm; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8pt; margin: 12pt 0; }
+    .badge {
+      display: inline-block;
+      padding: 2pt 8pt;
+      border-radius: 4pt;
+      font-size: 8pt;
+      font-weight: 600;
+      border: 1px solid;
+    }
+    .dim { background: #e8f2fc; border-color: #3685bf; color: #1a4d73; }
+    .fact { background: #e6f4ee; border-color: #1f8a65; color: #0d5a3f; }
+    .mart { background: #fef3e6; border-color: #e09030; color: #8a5010; }
+    .view { background: #f0f0f0; border-color: #888; color: #444; }
+    .layers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10pt;
+      margin: 10pt 0 16pt;
+    }
+    .layer-card {
+      border: 1px solid #ddd;
+      border-radius: 6pt;
+      padding: 10pt;
+      border-left: 4pt solid #3685bf;
+    }
+    .layer-card.bronze { border-left-color: #888; }
+    .layer-card.semantic { border-left-color: #1f8a65; }
+    .layer-card.control { border-left-color: #e09030; }
+    .layer-card strong { display: block; margin-bottom: 4pt; }
+    .layer-card code { font-size: 8.5pt; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8pt;
+      margin-bottom: 10pt;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4pt 6pt;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f3f3f3; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafafa; }
+    .kind-dim { color: #3685bf; font-weight: 600; }
+    .kind-fact { color: #1f8a65; font-weight: 600; }
+    .kind-mart { color: #c07010; font-weight: 600; }
+    .kind-view { color: #666; font-weight: 600; }
+    .section { page-break-before: always; }
+    .section:first-of-type { page-break-before: auto; }
+    .mono { font-family: Consolas, "Courier New", monospace; font-size: 7.5pt; }
+    .note { font-size: 8pt; color: #555; margin-top: 8pt; }
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6pt;
+      margin: 14pt 0;
+      flex-wrap: wrap;
+    }
+    .flow-box {
+      padding: 8pt 12pt;
+      border: 1px solid #3685bf;
+      border-radius: 6pt;
+      text-align: center;
+      min-width: 90pt;
+      background: #f8fbff;
+    }
+    .flow-arrow { font-size: 14pt; color: #888; }
+  </style>
+</head>
+<body>
+
+  <div class="cover">
+    <h1>HR Datamart Entity-Relationship Overview</h1>
+    <p class="meta">
+      <strong>Branch:</strong> mart_checks &nbsp;·&nbsp;
+      <strong>Warehouse:</strong> PostgreSQL per tenant (<code>hrm_wh_{tenant_id}</code>) &nbsp;·&nbsp;
+      <strong>Pattern:</strong> Medallion architecture + Kimball star schema (conformed dimensions, surrogate keys)
+    </p>
+
+    <div class="legend">
+      <span class="badge dim">DIM — Dimension</span>
+      <span class="badge fact">FACT — Atomic grain</span>
+      <span class="badge mart">MART — BI-ready aggregate</span>
+      <span class="badge view">VIEW — Semantic / legacy</span>
+    </div>
+
+    <h2>Medallion data flow</h2>
+    <div class="flow">
+      <div class="flow-box"><strong>Bronze</strong><br><code>hr_raw</code><br>ETL staging</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><strong>Silver / Gold</strong><br><code>hr</code><br>Facts &amp; marts</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><strong>Semantic</strong><br><code>hr_semantic</code><br>Consumer views</div>
+    </div>
+    <p class="note"><strong>Control plane:</strong> <code>hr_control</code> — ETL run log, watermarks, source registry.</p>
+
+    <div class="layers">
+      <div class="layer-card bronze">
+        <strong>Bronze — hr_raw</strong>
+        Staging tables from MintHRM source (<code>stg_*</code>). Includes
+        <code>stg_company_hierarchy_individual</code> (org-chart superior),
+        <code>stg_payroll_salary_bank_data</code>, and related payroll staging.
+        Loaded by tenant ETL.
+      </div>
+      <div class="layer-card">
+        <strong>Silver / Gold — hr</strong>
+        dbt dimensions, facts, and marts. Kimball-style stars with <code>*_sk</code> surrogate keys.
+      </div>
+      <div class="layer-card semantic">
+        <strong>Semantic — hr_semantic</strong>
+        Stable <code>vw_*</code> views for APIs and reports. Hides physical mart churn.
+      </div>
+      <div class="layer-card control">
+        <strong>Conformed bus matrix</strong>
+        <code>dim_employee</code> is shared across Enterprise HR and Payroll Phase 6.
+        Payroll adds <code>dim_payroll_period</code>, <code>dim_payroll_group</code>, <code>dim_canonical_pay_item</code>.
+      </div>
+    </div>
+
+    <p class="note">
+      Source: <span class="mono">backend/dbt_project/hr_mart/models/marts/</span> and
+      <span class="mono">models/semantic/</span> · Generated for executive / architecture review.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>1. Enterprise HR — Entities (schema: hr)</h2>
+    <table>
+      <thead>
+        <tr><th>Object</th><th>Kind</th><th>Primary key</th><th>Grain / role</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">dim_employee</td><td class="kind-dim">DIM</td><td class="mono">employee_sk</td><td>SCD2 · employee version (conformed); <code>superior_emp_no</code> = manager emp_no</td></tr>
+        <tr><td class="mono">dim_date</td><td class="kind-dim">DIM</td><td class="mono">date_sk</td><td>Calendar</td></tr>
+        <tr><td class="mono">dim_org_unit</td><td class="kind-dim">DIM</td><td class="mono">org_unit_sk</td><td>Organization hierarchy</td></tr>
+        <tr><td class="mono">dim_designation</td><td class="kind-dim">DIM</td><td class="mono">designation_sk</td><td>Job title / grade</td></tr>
+        <tr><td class="mono">dim_shift</td><td class="kind-dim">DIM</td><td class="mono">shift_sk</td><td>Work shift</td></tr>
+        <tr><td class="mono">fct_daily_attendance</td><td class="kind-fact">FACT</td><td class="mono">daily_attendance_sk</td><td>Employee × day</td></tr>
+        <tr><td class="mono">fct_overtime</td><td class="kind-fact">FACT</td><td class="mono">overtime_sk</td><td>Employee × day</td></tr>
+        <tr><td class="mono">fct_employment_snapshot</td><td class="kind-fact">FACT</td><td class="mono">employment_snapshot_sk</td><td>Employee × month</td></tr>
+        <tr><td class="mono">fct_lifecycle_event</td><td class="kind-fact">FACT</td><td class="mono">lifecycle_event_sk</td><td>Hire / transfer / exit events</td></tr>
+        <tr><td class="mono">fct_salary_change</td><td class="kind-fact">FACT</td><td class="mono">salary_change_sk</td><td>Salary change events</td></tr>
+        <tr><td class="mono">fact_leave_balance</td><td class="kind-fact">FACT</td><td class="mono">id</td><td>Leave requests / balances</td></tr>
+        <tr><td class="mono">mart_employee_current</td><td class="kind-mart">MART</td><td class="mono">employee_sk</td><td>Current employee profile; supervisor via <code>superior_emp_no</code></td></tr>
+        <tr><td class="mono">mart_headcount_monthly</td><td class="kind-mart">MART</td><td>—</td><td>Org × month headcount</td></tr>
+        <tr><td class="mono">mart_attendance_monthly_summary</td><td class="kind-mart">MART</td><td>—</td><td>Employee × month attendance rollup</td></tr>
+        <tr><td class="mono">mart_salary_band_summary</td><td class="kind-mart">MART</td><td>—</td><td>Band × period compensation bands</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Enterprise HR — Relationships (FK-style joins)</h3>
+    <table>
+      <thead><tr><th>From (fact / mart)</th><th>To (dimension / upstream)</th><th>Join key / role</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">fct_daily_attendance</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_overtime</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_employment_snapshot</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_employment_snapshot</td><td class="mono">dim_designation</td><td class="mono">designation_sk</td></tr>
+        <tr><td class="mono">fct_employment_snapshot</td><td class="mono">dim_org_unit</td><td class="mono">org_unit_sk</td></tr>
+        <tr><td class="mono">fct_lifecycle_event</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_salary_change</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fact_leave_balance</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">mart_employee_current</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">mart_employee_current</td><td class="mono">dim_employee</td><td class="mono">superior_emp_no → emp_no</td></tr>
+        <tr><td class="mono">mart_headcount_monthly</td><td class="mono">fct_employment_snapshot</td><td>aggregates</td></tr>
+        <tr><td class="mono">mart_headcount_monthly</td><td class="mono">dim_date</td><td class="mono">date_sk</td></tr>
+        <tr><td class="mono">mart_attendance_monthly_summary</td><td class="mono">fct_daily_attendance</td><td>aggregates</td></tr>
+        <tr><td class="mono">mart_attendance_monthly_summary</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">mart_salary_band_summary</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>2. Payroll Phase 6 — Entities (schema: hr)</h2>
+    <table>
+      <thead>
+        <tr><th>Object</th><th>Kind</th><th>Primary key</th><th>Grain / role</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">dim_payroll_period</td><td class="kind-dim">DIM</td><td class="mono">payroll_period_sk</td><td>Year × month × half</td></tr>
+        <tr><td class="mono">dim_payroll_group</td><td class="kind-dim">DIM</td><td class="mono">payroll_group_sk</td><td>Payroll run group</td></tr>
+        <tr><td class="mono">dim_bank</td><td class="kind-dim">DIM</td><td class="mono">bank_sk</td><td>Bank master</td></tr>
+        <tr><td class="mono">dim_bank_branch</td><td class="kind-dim">DIM</td><td class="mono">bank_branch_sk</td><td>Bank branch master</td></tr>
+        <tr><td class="mono">dim_canonical_pay_item</td><td class="kind-dim">DIM</td><td class="mono">canonical_pay_item_sk</td><td>Normalized pay components</td></tr>
+        <tr><td class="mono">dim_employee</td><td class="kind-dim">DIM</td><td class="mono">employee_sk</td><td>Conformed (shared with Enterprise HR)</td></tr>
+        <tr><td class="mono">fct_processed_salary</td><td class="kind-fact">FACT</td><td class="mono">processed_salary_sk</td><td>Emp × period × group</td></tr>
+        <tr><td class="mono">fct_processed_add_ded</td><td class="kind-fact">FACT</td><td class="mono">processed_add_ded_sk</td><td>Add/ded line item</td></tr>
+        <tr><td class="mono">fct_variable_pay_item</td><td class="kind-fact">FACT</td><td class="mono">variable_pay_item_sk</td><td>Variable pay line</td></tr>
+        <tr><td class="mono">fct_processed_tax</td><td class="kind-fact">FACT</td><td class="mono">processed_tax_sk</td><td>Tax component</td></tr>
+        <tr><td class="mono">fct_processed_loan_deduction</td><td class="kind-fact">FACT</td><td class="mono">processed_loan_sk</td><td>Loan deduction line</td></tr>
+        <tr><td class="mono">fct_compliance_payroll</td><td class="kind-fact">FACT</td><td class="mono">compliance_payroll_sk</td><td>Statutory compliance slice</td></tr>
+        <tr><td class="mono">fct_payroll_process_execution</td><td class="kind-fact">FACT</td><td class="mono">payroll_process_execution_sk</td><td>Payroll run metadata</td></tr>
+        <tr><td class="mono">fct_processed_attendance_payroll</td><td class="kind-fact">FACT</td><td class="mono">attendance_payroll_sk</td><td>Attendance amounts in payroll</td></tr>
+        <tr><td class="mono">fct_processed_multi_currency_salary</td><td class="kind-fact">FACT</td><td class="mono">processed_multi_currency_sk</td><td>FX salary lines</td></tr>
+        <tr><td class="mono">fct_noncash_benefit</td><td class="kind-fact">FACT</td><td class="mono">noncash_benefit_sk</td><td>Non-cash benefit line</td></tr>
+        <tr><td class="mono">fct_salary_bank_instruction</td><td class="kind-fact">FACT</td><td class="mono">salary_bank_instruction_sk</td><td>Emp × period × bank account payment instruction</td></tr>
+        <tr><td class="mono">mart_processed_payroll_summary</td><td class="kind-mart">MART</td><td>—</td><td>Emp × period BI summary</td></tr>
+        <tr><td class="mono">mart_horizontal_paysheet_core</td><td class="kind-mart">MART</td><td>—</td><td>Wide paysheet (core columns)</td></tr>
+        <tr><td class="mono">mart_horizontal_paysheet_dynamic</td><td class="kind-mart">MART</td><td>—</td><td>Pivoted dynamic pay items</td></tr>
+        <tr><td class="mono">mart_payroll_reconciliation</td><td class="kind-mart">MART</td><td>—</td><td>Group × period reconciliation</td></tr>
+        <tr><td class="mono">mart_statutory_summary</td><td class="kind-mart">MART</td><td>—</td><td>Statutory rollup</td></tr>
+        <tr><td class="mono">mart_cost_to_company</td><td class="kind-mart">MART</td><td>—</td><td>Cost-to-company (CTC)</td></tr>
+        <tr><td class="mono">mart_dynamic_pay_items</td><td class="kind-mart">MART</td><td>—</td><td>Dynamic pay item aggregate</td></tr>
+        <tr><td class="mono">mart_payroll_pivot_column_catalog</td><td class="kind-mart">MART</td><td>—</td><td>Tenant × pivot_key paysheet column catalog</td></tr>
+        <tr><td class="mono">fact_payroll</td><td class="kind-view">VIEW</td><td>—</td><td>Legacy compatibility view → fct_processed_salary</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Payroll Phase 6 — Relationships</h3>
+    <table>
+      <thead><tr><th>From</th><th>To</th><th>Join key / role</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">fct_processed_salary</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_processed_salary</td><td class="mono">dim_payroll_period</td><td class="mono">payroll_period_sk</td></tr>
+        <tr><td class="mono">fct_processed_salary</td><td class="mono">dim_payroll_group</td><td class="mono">payroll_group_sk</td></tr>
+        <tr><td class="mono">fct_processed_add_ded</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_processed_add_ded</td><td class="mono">dim_payroll_period</td><td class="mono">payroll_period_sk</td></tr>
+        <tr><td class="mono">fct_processed_add_ded</td><td class="mono">dim_payroll_group</td><td class="mono">payroll_group_sk</td></tr>
+        <tr><td class="mono">fct_processed_add_ded</td><td class="mono">dim_canonical_pay_item</td><td class="mono">canonical_pay_item_sk</td></tr>
+        <tr><td class="mono">fct_variable_pay_item</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_variable_pay_item</td><td class="mono">dim_payroll_period</td><td class="mono">payroll_period_sk</td></tr>
+        <tr><td class="mono">fct_variable_pay_item</td><td class="mono">dim_canonical_pay_item</td><td class="mono">canonical_pay_item_sk</td></tr>
+        <tr><td class="mono">fct_processed_tax</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_processed_tax</td><td class="mono">dim_payroll_period</td><td class="mono">payroll_period_sk</td></tr>
+        <tr><td class="mono">fct_processed_loan_deduction</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_processed_loan_deduction</td><td class="mono">dim_payroll_period</td><td class="mono">payroll_period_sk</td></tr>
+        <tr><td class="mono">fct_compliance_payroll</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_compliance_payroll</td><td class="mono">dim_payroll_period</td><td class="mono">payroll_period_sk</td></tr>
+        <tr><td class="mono">fct_salary_bank_instruction</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_salary_bank_instruction</td><td class="mono">dim_payroll_period</td><td class="mono">payroll_period_sk</td></tr>
+        <tr><td class="mono">fct_salary_bank_instruction</td><td class="mono">dim_payroll_group</td><td class="mono">payroll_group_sk</td></tr>
+        <tr><td class="mono">fct_salary_bank_instruction</td><td class="mono">dim_bank</td><td class="mono">bank_sk</td></tr>
+        <tr><td class="mono">fct_salary_bank_instruction</td><td class="mono">dim_bank_branch</td><td class="mono">bank_branch_sk</td></tr>
+        <tr><td class="mono">fct_payroll_process_execution</td><td class="mono">dim_payroll_period</td><td class="mono">payroll_period_sk</td></tr>
+        <tr><td class="mono">fct_payroll_process_execution</td><td class="mono">dim_payroll_group</td><td class="mono">payroll_group_sk</td></tr>
+        <tr><td class="mono">mart_processed_payroll_summary</td><td class="mono">fct_processed_salary</td><td>rolls up</td></tr>
+        <tr><td class="mono">mart_horizontal_paysheet_core</td><td class="mono">fct_processed_salary</td><td>denormalizes</td></tr>
+        <tr><td class="mono">mart_horizontal_paysheet_dynamic</td><td class="mono">mart_horizontal_paysheet_core</td><td>extends</td></tr>
+        <tr><td class="mono">mart_horizontal_paysheet_dynamic</td><td class="mono">fct_processed_add_ded</td><td>pivot</td></tr>
+        <tr><td class="mono">mart_horizontal_paysheet_dynamic</td><td class="mono">fct_variable_pay_item</td><td>pivot</td></tr>
+        <tr><td class="mono">mart_horizontal_paysheet_dynamic</td><td class="mono">mart_payroll_pivot_column_catalog</td><td>column catalog</td></tr>
+        <tr><td class="mono">mart_payroll_reconciliation</td><td class="mono">fct_processed_salary</td><td>reconciles</td></tr>
+        <tr><td class="mono">mart_statutory_summary</td><td class="mono">fct_compliance_payroll</td><td>aggregates</td></tr>
+        <tr><td class="mono">mart_cost_to_company</td><td class="mono">fct_processed_salary</td><td>extends</td></tr>
+        <tr><td class="mono">mart_cost_to_company</td><td class="mono">fct_noncash_benefit</td><td>extends</td></tr>
+        <tr><td class="mono">mart_dynamic_pay_items</td><td class="mono">fct_variable_pay_item</td><td>aggregates</td></tr>
+        <tr><td class="mono">mart_dynamic_pay_items</td><td class="mono">fct_processed_add_ded</td><td>aggregates</td></tr>
+        <tr><td class="mono">fact_payroll</td><td class="mono">fct_processed_salary</td><td>view of</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>3. Semantic layer (schema: hr_semantic)</h2>
+    <p class="meta">Consumer-facing views for APIs and reports. Physical marts may change; views provide a stable contract.</p>
+    <table>
+      <thead><tr><th>View</th><th>Primary upstream marts / facts</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">vw_payroll_summary</td><td>mart_processed_payroll_summary, payroll facts</td></tr>
+        <tr><td class="mono">vw_headcount</td><td>mart_headcount_monthly, dim_employee</td></tr>
+        <tr><td class="mono">vw_employment_monthly</td><td>fct_employment_snapshot</td></tr>
+        <tr><td class="mono">vw_attendance_summary</td><td>mart_attendance_monthly_summary</td></tr>
+        <tr><td class="mono">vw_salary_bands</td><td>mart_salary_band_summary</td></tr>
+        <tr><td class="mono">vw_lifecycle_summary</td><td>fct_lifecycle_event</td></tr>
+        <tr><td class="mono">vw_turnover</td><td>lifecycle / employment facts</td></tr>
+        <tr><td class="mono">vw_leave_summary</td><td>fact_leave_balance (interim; see Leave Intelligence planned)</td></tr>
+        <tr><td class="mono">vw_performance_summary</td><td>performance staging</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>4. Leave Intelligence Mart (planned — schema: hr)</h2>
+    <p class="meta">
+      Target architecture for ~74 MintHRM leave source tables. Reuses conformed
+      <code>dim_employee</code>, <code>dim_date</code>, <code>dim_org_unit</code>,
+      <code>dim_designation</code>, <code>dim_shift</code>.
+      Phase 0 interim: <code>fact_leave_balance</code> + <code>vw_leave_summary</code> (standard leave only).
+      Full design: <span class="mono">docs/leave-intelligence-mart-design.md</span>
+    </p>
+    <table>
+      <thead>
+        <tr><th>Object</th><th>Kind</th><th>Primary key</th><th>Grain / role</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">dim_leave_type</td><td class="kind-dim">DIM</td><td class="mono">leave_type_sk</td><td>SCD2 leave type</td></tr>
+        <tr><td class="mono">dim_leave_status</td><td class="kind-dim">DIM</td><td class="mono">leave_status_sk</td><td>Workflow status</td></tr>
+        <tr><td class="mono">dim_leave_reason</td><td class="kind-dim">DIM</td><td class="mono">leave_reason_sk</td><td>Predefined purpose</td></tr>
+        <tr><td class="mono">dim_leave_source</td><td class="kind-dim">DIM</td><td class="mono">leave_source_sk</td><td>Module origin</td></tr>
+        <tr><td class="mono">dim_leave_approval_level</td><td class="kind-dim">DIM</td><td class="mono">leave_approval_level_sk</td><td>Approval hierarchy</td></tr>
+        <tr><td class="mono">fct_leave_application</td><td class="kind-fact">FACT</td><td class="mono">leave_application_sk</td><td>One row per leave application (all modules)</td></tr>
+        <tr><td class="mono">fct_leave_daily</td><td class="kind-fact">FACT</td><td class="mono">leave_daily_sk</td><td>Employee × leave date</td></tr>
+        <tr><td class="mono">fct_leave_balance_snapshot</td><td class="kind-fact">FACT</td><td class="mono">balance_snapshot_sk</td><td>Employee × leave type × snapshot date</td></tr>
+        <tr><td class="mono">fct_leave_approval</td><td class="kind-fact">FACT</td><td class="mono">leave_approval_sk</td><td>One row per approval action</td></tr>
+        <tr><td class="mono">mart_leave_monthly_summary</td><td class="kind-mart">MART</td><td>—</td><td>Month × department × leave type</td></tr>
+        <tr><td class="mono">mart_leave_employee_profile</td><td class="kind-mart">MART</td><td>—</td><td>Employee leave behavior</td></tr>
+        <tr><td class="mono">vw_current_leave_balance</td><td class="kind-view">VIEW</td><td>—</td><td>Current balances (hr_semantic)</td></tr>
+        <tr><td class="mono">vw_employee_leave_history</td><td class="kind-view">VIEW</td><td>—</td><td>Unified leave history (hr_semantic)</td></tr>
+        <tr><td class="mono">vw_pending_leave_approvals</td><td class="kind-view">VIEW</td><td>—</td><td>Approval queue (hr_semantic)</td></tr>
+        <tr><td class="mono">vw_leave_liability</td><td class="kind-view">VIEW</td><td>—</td><td>Payroll liability (hr_semantic)</td></tr>
+      </tbody>
+    </table>
+    <h3>Leave Intelligence — Planned relationships</h3>
+    <table>
+      <thead><tr><th>From</th><th>To</th><th>Join key / role</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">fct_leave_application</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_leave_application</td><td class="mono">dim_leave_type</td><td class="mono">leave_type_sk</td></tr>
+        <tr><td class="mono">fct_leave_application</td><td class="mono">dim_date</td><td class="mono">start_date_sk</td></tr>
+        <tr><td class="mono">fct_leave_daily</td><td class="mono">fct_leave_application</td><td class="mono">leave_application_sk</td></tr>
+        <tr><td class="mono">fct_leave_daily</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_leave_balance_snapshot</td><td class="mono">dim_employee</td><td class="mono">employee_sk</td></tr>
+        <tr><td class="mono">fct_leave_balance_snapshot</td><td class="mono">dim_leave_type</td><td class="mono">leave_type_sk</td></tr>
+        <tr><td class="mono">mart_leave_monthly_summary</td><td class="mono">fct_leave_daily</td><td>aggregates</td></tr>
+        <tr><td class="mono">vw_current_leave_balance</td><td class="mono">fct_leave_balance_snapshot</td><td>is_current snapshot</td></tr>
+        <tr><td class="mono">vw_employee_leave_history</td><td class="mono">fct_leave_application</td><td>unified history</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>

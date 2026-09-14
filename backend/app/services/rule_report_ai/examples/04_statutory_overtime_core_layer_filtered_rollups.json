@@ -1,0 +1,56 @@
+{
+  "name": "statutory_overtime",
+  "sources": {
+    "att": {
+      "table": "core.fct_attendance_day",
+      "columns": ["employee_sk", "work_date", "holiday_type_sk", "scheduled_shift_sk"]
+    },
+    "ot": {
+      "table": "core.fct_overtime_day",
+      "columns": ["employee_sk", "ot_date", "ot_premium", "ot_in_premium", "ot_in_seconds", "ot_out_seconds", "ot_day_or_hour_amount"],
+      "join": {"type": "left", "on": ["employee_sk = employee_sk", "ot_date = work_date"]}
+    },
+    "ht": {
+      "table": "core.dim_holiday_type",
+      "columns": ["holiday_type_sk", "source_id"],
+      "join": {"type": "left", "on": ["holiday_type_sk = holiday_type_sk"]},
+      "column_aliases": {"source_id": "holiday_type_code"}
+    },
+    "sh": {
+      "table": "core.dim_shift",
+      "columns": ["shift_sk", "is_off_shift"],
+      "join": {"type": "left", "on": ["shift_sk = scheduled_shift_sk"]}
+    },
+    "emp": {
+      "table": "mart.mart_employee",
+      "columns": ["employee_sk", "employee_no", "initials_name", "branch", "attendance_group"],
+      "join": {"type": "left", "on": ["employee_sk = employee_sk"]}
+    }
+  },
+  "grain": ["employee_no"],
+  "row_value": {
+    "cases": [
+      { "when": "attendance_group == 'PH/TB Non Executive'",
+        "value": "coalesce(ot_in_seconds, 0) / 3600 + coalesce(ot_out_seconds, 0) / 3600 + coalesce(ot_day_or_hour_amount, 0)" }
+    ],
+    "else": "0"
+  },
+  "rollup": {
+    "normal_ot_hours": "sum(row_value) where (coalesce(ot_premium, 0) == 1.5 or coalesce(ot_in_premium, 0) == 1.5) and not (coalesce(holiday_type_code, -1) in (2, 37)) and not coalesce(is_off_shift, False)",
+    "statutory_ot_hours": "sum(row_value) where (coalesce(ot_premium, 0) == 2.0 or coalesce(ot_in_premium, 0) == 2.0) and coalesce(holiday_type_code, -1) == 8",
+    "offday_ot_hours": "sum(row_value) where (coalesce(ot_premium, 0) == 1.5 or coalesce(ot_in_premium, 0) == 1.5) and coalesce(is_off_shift, False)",
+    "poya_ot_hours": "sum(row_value) where (coalesce(ot_premium, 0) == 1.5 or coalesce(ot_in_premium, 0) == 1.5) and coalesce(holiday_type_code, -1) == 2",
+    "initials_name": "max(initials_name)",
+    "branch": "max(branch)"
+  },
+  "compute": {
+    "total_ot_hours": "coalesce(normal_ot_hours, 0) + coalesce(statutory_ot_hours, 0) + coalesce(offday_ot_hours, 0) + coalesce(poya_ot_hours, 0)"
+  },
+  "having": "total_ot_hours > 0",
+  "order_by": ["employee_no"],
+  "output": ["employee_no", "initials_name", "branch", "normal_ot_hours", "statutory_ot_hours", "offday_ot_hours", "poya_ot_hours", "total_ot_hours", "end_date"],
+  "filters": [
+    { "name": "date_from", "type": "date", "required": true, "label": "From", "column": "work_date", "op": "gte" },
+    { "name": "date_to", "type": "date", "required": true, "label": "To", "column": "work_date", "op": "lte", "expose_as": "end_date" }
+  ]
+}

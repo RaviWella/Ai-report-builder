@@ -1,0 +1,92 @@
+{
+  "name": "shift_allowance",
+  "source": "mart.mart_attendance_daily",
+  "grain": ["employee_no", "work_date"],
+
+  "row_value": {
+    "define": {
+      "elig": "employee_category in ('Shopfloor Associate', 'Supervisory') and scheduled_shift in ('Production Shift - 01', 'Production Shift - 02', 'Production Shift - 03', 'D Production Shift 01', 'D Production Shift 03', 'Production Shift - 01 - Sat', 'Production Shift - 02 - Sat', 'Production Shift - 03 - Sat', 'Saturday Special Production Shift')",
+
+      "started_6am": "punch_in_time >= time('04:00:00') and punch_in_time < time('09:00:00')",
+      "started_2pm": "punch_in_time >= time('11:00:00') and punch_in_time < time('18:00:00')",
+      "started_night": "punch_in_time >= time('19:00:00')",
+
+      "reached_6am": "((employee_category == 'Supervisory' and punch_out_time >= time('04:30:00')) or (employee_category == 'Shopfloor Associate' and punch_out_time >= time('05:00:00'))) and punch_out_time <= time('09:00:00')",
+      "reached_10pm": "(employee_category == 'Supervisory' and punch_out_time >= time('20:30:00')) or (employee_category == 'Shopfloor Associate' and punch_out_time >= time('21:00:00'))"
+    },
+
+    "cases": [
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_6am and reached_6am and employee_category == 'Shopfloor Associate'",
+        "value": "600" },
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_6am and reached_6am and employee_category == 'Supervisory'",
+        "value": "700" },
+
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_2pm and reached_6am and employee_category == 'Shopfloor Associate'",
+        "value": "600" },
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_2pm and reached_6am and employee_category == 'Supervisory'",
+        "value": "700" },
+
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_night and reached_6am and employee_category == 'Shopfloor Associate'",
+        "value": "450" },
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_night and reached_6am and employee_category == 'Supervisory'",
+        "value": "500" },
+
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_2pm and reached_10pm and employee_category == 'Shopfloor Associate'",
+        "value": "150" },
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_2pm and reached_10pm and employee_category == 'Supervisory'",
+        "value": "200" },
+
+      { "when": "elig and day_name in ('Saturday', 'Sunday') and started_6am and reached_6am and employee_category == 'Shopfloor Associate'",
+        "value": "450" },
+      { "when": "elig and day_name in ('Saturday', 'Sunday') and started_6am and reached_6am and employee_category == 'Supervisory'",
+        "value": "500" },
+
+      { "when": "elig and day_name in ('Saturday', 'Sunday') and started_night and reached_6am and employee_category == 'Shopfloor Associate'",
+        "value": "450" },
+      { "when": "elig and day_name in ('Saturday', 'Sunday') and started_night and reached_6am and employee_category == 'Supervisory'",
+        "value": "500" }
+    ],
+
+    "else": "0"
+  },
+
+  "row_cases": {
+    "day_type": {
+      "cases": [
+        { "when": "day_name == 'Saturday'", "value": "'SAT'" },
+        { "when": "day_name == 'Sunday'",   "value": "'SUN'" },
+        { "when": "is_public_holiday",      "value": "'HOL'" }
+      ],
+      "else": "'WOK'"
+    }
+  },
+
+  "rollup": {
+    "amount":             "max(row_value)",
+    "full_name":          "max(full_name)",
+    "employee_category":  "max(employee_category)",
+    "day_type":            "max(day_type)",
+    "scheduled_shift":     "max(scheduled_shift)",
+    "punch_in_time":       "max(punch_in_time)",
+    "punch_out_datetime":  "max(punch_out_datetime)"
+  },
+
+  "having": "amount >= 1",
+  "order_by": ["employee_no", "work_date"],
+
+  "output": [
+    "employee_no",
+    "work_date",
+    "full_name",
+    "day_type",
+    "scheduled_shift",
+    "punch_in_time",
+    "punch_out_datetime",
+    "amount"
+  ],
+
+  "filters": [
+    { "name": "date_from", "type": "date", "required": true, "label": "From", "column": "work_date", "op": "gte" },
+    { "name": "date_to",   "type": "date", "required": true, "label": "To",   "column": "work_date", "op": "lte" }
+  ]
+}

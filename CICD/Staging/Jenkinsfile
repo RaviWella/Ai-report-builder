@@ -25,7 +25,6 @@ pipeline {
         REACT_APP_API_BASE_URL = 'https://mint-analytics-new-api.minchy.ai/api/v1'
         REACT_APP_TENANT_ID = 'demo_tenant'
 
-        // Health gates — entrypoint runs Alembic once; lifespan does not re-migrate
         BACKEND_PUBLIC_HEALTH_URL = 'https://mint-analytics-new-api.minchy.ai/health'
         BACKEND_HEALTH_MAX_ATTEMPTS = '36'
         BACKEND_HEALTH_INTERVAL_SEC = '5'
@@ -84,17 +83,6 @@ pipeline {
                         backendChanged = backendChanged || pathChanged(changedFiles, 'backend')
                     }
 
-                    if (frontendChanged) {
-                        echo 'Frontend changes detected'
-                    }
-                    if (backendChanged) {
-                        echo 'Backend changes detected'
-                    }
-
-                    if (!frontendChanged && !backendChanged) {
-                        echo 'No frontend/backend changes detected'
-                    }
-
                     env.FRONTEND_CHANGED = frontendChanged.toString()
                     env.BACKEND_CHANGED = backendChanged.toString()
 
@@ -138,6 +126,7 @@ pipeline {
                         }
                     }
                 }
+
                 stage('Build Backend') {
                     steps {
                         script {
@@ -173,6 +162,7 @@ pipeline {
                         }
                     }
                 }
+
                 stage('Push Backend') {
                     steps {
                         script {
@@ -210,10 +200,13 @@ pipeline {
                                 echo "${REGISTRY_PASSWORD}" | docker login -u "${REGISTRY_USERNAME}" --password-stdin ${GITLAB_REGISTRY}
 
                                 NETWORK_FLAGS=""
-                                IFS=',' read -ra NETWORKS <<< "${DOCKER_NETWORKS}"
-                                for network in "\${NETWORKS[@]}"; do
+                                DOCKER_NETWORKS_VALUE="${DOCKER_NETWORKS}"
+                                OLD_IFS="\${IFS}"
+                                IFS=','
+                                for network in \${DOCKER_NETWORKS_VALUE}; do
                                     NETWORK_FLAGS="\${NETWORK_FLAGS} --network \${network}"
                                 done
+                                IFS="\${OLD_IFS}"
 
                                 docker stop ${BACKEND_CONTAINER_NAME} || true
                                 docker rm ${BACKEND_CONTAINER_NAME} || true
@@ -234,7 +227,6 @@ pipeline {
                                     docker logs ${BACKEND_CONTAINER_NAME} || true
                                     exit 1
                                 fi
-                                echo "Backend container started — health verified in next stage"
 
                                 docker logout ${GITLAB_REGISTRY}
 EOF
@@ -267,10 +259,13 @@ EOF
                                 echo "${REGISTRY_PASSWORD}" | docker login -u "${REGISTRY_USERNAME}" --password-stdin ${GITLAB_REGISTRY}
 
                                 NETWORK_FLAGS=""
-                                IFS=',' read -ra NETWORKS <<< "${DOCKER_NETWORKS}"
-                                for network in "\${NETWORKS[@]}"; do
+                                DOCKER_NETWORKS_VALUE="${DOCKER_NETWORKS}"
+                                OLD_IFS="\${IFS}"
+                                IFS=','
+                                for network in \${DOCKER_NETWORKS_VALUE}; do
                                     NETWORK_FLAGS="\${NETWORK_FLAGS} --network \${network}"
                                 done
+                                IFS="\${OLD_IFS}"
 
                                 docker stop ${FRONTEND_CONTAINER_NAME} || true
                                 docker rm ${FRONTEND_CONTAINER_NAME} || true
@@ -290,7 +285,6 @@ EOF
                                     docker logs ${FRONTEND_CONTAINER_NAME} || true
                                     exit 1
                                 fi
-                                echo "Frontend container started — health verified in next stage"
 
                                 docker logout ${GITLAB_REGISTRY}
 EOF
@@ -307,7 +301,7 @@ EOF
                     def frontendDeployed = env.FRONTEND_CHANGED == 'true'
 
                     if (!backendDeployed && !frontendDeployed) {
-                        echo 'No services deployed in this run — skipping health verification'
+                        echo 'No services deployed in this run - skipping health verification'
                         return
                     }
 
@@ -318,7 +312,6 @@ EOF
                         string(credentialsId: 'mint-ai-server-host', variable: 'REMOTE_HOST')
                     ]) {
                         if (backendDeployed) {
-                            echo 'Waiting for backend container health (migrations + /health)…'
                             waitForRemoteContainerHealth(
                                 BACKEND_CONTAINER_NAME,
                                 BACKEND_HEALTH_MAX_ATTEMPTS.toInteger(),
@@ -328,7 +321,6 @@ EOF
                             )
                         }
                         if (frontendDeployed) {
-                            echo 'Waiting for frontend container health…'
                             waitForRemoteContainerHealth(
                                 FRONTEND_CONTAINER_NAME,
                                 FRONTEND_HEALTH_MAX_ATTEMPTS.toInteger(),
@@ -340,11 +332,10 @@ EOF
                     }
 
                     if (backendDeployed) {
-                        echo "Verifying public API health at ${BACKEND_PUBLIC_HEALTH_URL}"
                         verifyPublicHealthUrl(BACKEND_PUBLIC_HEALTH_URL)
                     }
 
-                    echo 'Deployment health verification passed — application is ready'
+                    echo 'Deployment health verification passed'
                 }
             }
         }
@@ -353,7 +344,7 @@ EOF
     post {
         success {
             script {
-                discordNotify('success', 5763719, 'Pipeline Succeeded', "Staging pipeline succeeded for **${APP_NAME}** (${ENV_NAME}) — health checks passed")
+                discordNotify('success', 5763719, 'Pipeline Succeeded', "Staging pipeline succeeded for **${APP_NAME}** (${ENV_NAME})")
             }
         }
         failure {
@@ -371,11 +362,9 @@ EOF
 
 def resolveCurrentCommit() {
     def gitCommit = env.GIT_COMMIT?.trim()
-
     if (isCommitAvailable(gitCommit)) {
         return gitCommit
     }
-
     return sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
 }
 
@@ -384,22 +373,17 @@ def resolveBaselineCommit(String currentCommit) {
         env.GIT_PREVIOUS_SUCCESSFUL_COMMIT?.trim(),
         env.GIT_PREVIOUS_COMMIT?.trim()
     ]
-
     return candidates.find { commit ->
         commit && commit != currentCommit && isCommitAvailable(commit)
     }
 }
 
 def changedFilesBetween(String baselineCommit, String currentCommit) {
-    return sh(
-        script: "git diff --name-only '${baselineCommit}' '${currentCommit}'",
-        returnStdout: true
-    ).trim()
+    return sh(script: "git diff --name-only '${baselineCommit}' '${currentCommit}'", returnStdout: true).trim()
 }
 
 def collectChangeSetFiles() {
     def files = []
-
     currentBuild.changeSets.each { changeSet ->
         changeSet.items.each { entry ->
             entry.affectedFiles.each { file ->
@@ -407,7 +391,6 @@ def collectChangeSetFiles() {
             }
         }
     }
-
     return files.unique().sort()
 }
 
@@ -421,7 +404,6 @@ def isCommitAvailable(String commit) {
     if (!isCommitSha(commit)) {
         return false
     }
-
     return sh(script: "git cat-file -e '${commit}^{commit}'", returnStatus: true) == 0
 }
 
@@ -433,13 +415,7 @@ def shortCommit(String commit) {
     return commit.take(8)
 }
 
-def waitForRemoteContainerHealth(
-    String containerName,
-    int maxAttempts,
-    int intervalSec,
-    String healthUrl,
-    String mode
-) {
+def waitForRemoteContainerHealth(String containerName, int maxAttempts, int intervalSec, String healthUrl, String mode) {
     sh """
         ssh -o StrictHostKeyChecking=no -i \${SSH_KEY} \${SSH_USER}@\${REMOTE_HOST} \\
             "bash -s -- '${containerName}' ${maxAttempts} ${intervalSec} '${healthUrl}' '${mode}'" \\
@@ -450,20 +426,17 @@ def waitForRemoteContainerHealth(
 def verifyPublicHealthUrl(String healthUrl) {
     sh """
         set -e
-        echo "Polling ${healthUrl} from Jenkins agent…"
         attempts=0
         max=24
-        until curl -fsS '${healthUrl}' | grep -q '"status"[[:space:]]*:[[:space:]]*"healthy"'; do
+        until curl -fsS '${healthUrl}' | grep -Eq '"status"[[:space:]]*:[[:space:]]*"(ok|healthy)"'; do
             attempts=\$((attempts + 1))
             if [ "\$attempts" -ge "\$max" ]; then
                 echo "Public health check failed after \${max} attempts"
                 curl -v '${healthUrl}' || true
                 exit 1
             fi
-            echo "Public health not ready (attempt \$attempts/\$max), retrying in 5s…"
             sleep 5
         done
-        echo "Public health check passed"
         curl -fsS '${healthUrl}'
         echo ""
     """

@@ -1,0 +1,76 @@
+[project]
+name = "minthrm-report-builder"
+version = "0.1.0"
+description = "MintHRM AI-Assisted Self-Service Report Builder — backend"
+requires-python = ">=3.13"
+readme = "../README.md"
+
+# Version policy (README §3): pins are major versions known-good as of 2026.
+# At init, pin the latest stable patch within each major, then update deliberately.
+dependencies = [
+    "fastapi>=0.115,<0.116",
+    "pydantic>=2.10,<3",
+    "pydantic-settings>=2.7,<3",
+    "uvicorn[standard]>=0.34,<0.35",
+    "gunicorn>=23,<24",
+    "sqlalchemy>=2.0,<2.1",
+    "psycopg[binary,pool]>=3.2,<3.3",
+    "alembic>=1.14,<2",
+    "pandas>=2.2,<3",
+    "openpyxl>=3.1,<4",
+    "xlrd>=2.0,<3",                  # legacy .xls sample uploads
+    "pyxlsb>=1.0,<2",                # binary .xlsb sample uploads
+    "lxml>=5.3,<6",                  # HTML .xls exports (common HR web export)
+    "xlsxwriter>=3.2,<4",
+    "weasyprint>=63,<64",
+    "python-docx>=1.1,<2",         # build editable Word (.docx) letter downloads
+    "htmldocx>=0.0.6,<0.1",        # convert composed letter HTML -> .docx
+    "pdfplumber>=0.11,<0.12",      # read a PDF report sample (local, no native dep)
+    "pillow>=10,<12",
+    "pytesseract>=0.3.10,<0.4",    # OCR an image report sample (needs tesseract-ocr)
+    "jinja2>=3.1,<4",
+    "inflect>=7.4,<8",             # natural-language polish for rule-report explanations
+    "celery>=5.4,<6",
+    "redis>=5.2,<6",
+    "authlib>=1.4,<2",
+    "passlib[bcrypt]>=1.7,<2",
+    # passlib 1.7.x is incompatible with bcrypt>=4 (reads bcrypt.__about__).
+    # Pin bcrypt<4 until passlib 1.8 / a switch to pwdlib. Verified via e2e run.
+    "bcrypt>=3.2,<4",
+    "cryptography>=44,<46",  # Fernet — encrypt UI-entered AI API keys at rest
+    "python-multipart>=0.0.20",
+    "structlog>=24,<25",
+    "httpx>=0.28,<0.29",
+    "anthropic>=0.40,<1",
+    "claude-agent-sdk>=0.2,<0.3",   # AI-assisted rule-report builder (Claude Code, subscription auth)
+    "opentelemetry-sdk>=1.29,<2",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+    "email-validator>=2.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8,<9",
+    "pytest-asyncio>=0.25,<0.26",
+    "ruff>=0.8",
+    "mypy>=1.14",
+]
+# Self-hosted AI option (README §3.2): vllm served behind the same AIProvider iface.
+selfhosted = [
+    "vllm>=0.6",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

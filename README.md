@@ -1,237 +1,332 @@
-# MintHRM — HR Intelligence Platform
+# MintHRM — AI-Assisted Report Builder
 
-**Version:** v1.0.0 — Foundation Release
-
-Governance-grade HR analytics built on customer source databases (MySQL and/or PostgreSQL).
-Every metric is traceable to posted HR transactions via the mart and semantic views.
-Runtime contracts, taxonomy, and output semantics are frozen as of v1.0.
-
-**Multi-tenant:** one PostgreSQL **warehouse database** per customer (`hrm_wh_{tenant_id}`) on the analytics cluster, with schemas `hr_raw`, `hr`, `hr_semantic`, `hr_control`. Platform metadata lives in a separate **application** database (`hrm_platform`).
+> Developer build guide. Read this top-to-bottom before writing code.
+> Companion documents: `SRS v0.2` (functional spec) and `Technical Architecture v1.0` (full detail + diagrams).
 
 ---
 
-## Architecture
+## 1. What we are building
 
-```
-Customer source DB(s) — MySQL / PostgreSQL (read-only, per tenant)
-  ↓ Python EL (extract → warehouse hr_raw.stg_*)
-hr_raw  — staging mirror
-  ↓ dbt
-hr      — dimensional mart (dim_*, fact_*)
-  ↓ dbt views
-hr_semantic  — AI-safe views (ai_reader role)
-  ↓ FastAPI
-/hr/*  /hr-etl/*  /datamart/*
-  ↓ React 18 + TypeScript + Vite
-HR Reports · Datamart Assistant · ETL Control
-```
+A new MintHRM module that lets a **non-technical user** (client HR admin, or MintHRM support) design, preview, and publish custom HR reports from a client's data — **with zero developer involvement**.
 
-**Datamart ER documentation:** When you add, rename, or remove dbt mart/semantic models or change join grains, update [`docs/datamart-er.yml`](docs/datamart-er.yml) and regenerate [`docs/HR_DATAMART_ER.pdf`](docs/HR_DATAMART_ER.pdf). See [`docs/README.md`](docs/README.md).
+Two panels:
 
-### Datamart AI Assistant (text-to-SQL)
+- **Builder panel** — design and publish report templates.
+- **Viewer panel** — end-users run published reports, apply filters, download Excel/PDF.
 
-Ad-hoc analytics on a **read-only analytics warehouse** (separate from the per-tenant HR marts). Uses LLM-generated SQL with grounding, SQL safety checks, sessions/templates, and report export.
-
-| Surface | Path |
-|---|---|
-| UI | `/datamart/chat` (nav: **Datamart Assistant**) |
-| API | `/api/v1/datamart/*` |
-
-**Setup (after `docker compose up`):**
-
-1. Apply migrations (creates chat/workspace tables in **`public` only**; revision `dm_public_consolidate_001` merges any legacy copies from tenant marts and drops them):
-
-   ```bash
-   cd backend && alembic upgrade heads
-   python tools/check_datamart_tables.py   # optional sanity check
-   ```
-
-2. Copy datamart block from `backend/.env.example` into `backend/.env` — warehouse credentials (`DATAMART_*`), optional `DATAHUB_GMS_URL`, and `AI_PROXY_API_KEY` / `MINCHY_AI_API_KEY` for the LLM.
-
-3. Optional metadata: see [DATAHUB_SETUP.md](DATAHUB_SETUP.md). After warehouse or datamart agent/catalog changes, refresh metadata:
-
-   ```powershell
-   # From repo root (Windows)
-   .\scripts\refresh_datamart_metadata.ps1
-
-   # Metadata + datamart unit tests
-   .\scripts\after_datamart_change.ps1
-
-   # Or before starting the API
-   cd backend
-   .\run-dev.ps1 -RefreshMetadata
-   ```
-
-   Credentials for DataHub ingest are read from `backend/.env` (`DATAMART_*`, `DATAHUB_GMS_URL`); a generated `datahub_ingestion.generated.yml` is not committed.
-
-4. Frontend: `X-API-Key` only for `/api/v1/datamart/*` (no `X-Tenant-Id` required).
-
-**Datamart LLM 401 / no responses on localhost:** (1) Use hosted Ollama settings in `backend/.env` (same as mint-analytics). (2) On Windows, an **old `python.exe` on `127.0.0.1:8000`** can steal traffic from your new uvicorn — run `.\tools\clear-port-8000.ps1` then restart. (3) You should see `Datamart LLM ready: backend=ollama` and `→ POST /api/v1/datamart/chat` in the terminal when logging is enabled.
-
-**Note:** Datamart Assistant uses a read-only analytics warehouse (`DATAMART_SCHEMA`, default `public_mint_audit`), separate from per-tenant HR marts (`hr_semantic` views).
-
-**Tests:**
-
-```bash
-# Backend (pytest-sugar progress bar; install once: pip install pytest pytest-asyncio pytest-sugar)
-cd backend && python -m pytest -m datamart
-cd frontend && npm run test
-# E2E (dev server on :5174, API on :8000):
-cd frontend && npm run test:e2e -- e2e/datamart-workspace-nav.spec.ts
-```
-
-**Phase 6b DataHub per tenant** (after ETL warehouse exists):
-
-```bash
-cd backend
-python tools/run_tenant_datahub_ingest.py --tenant-id demo_tenant
-# Or full metadata refresh (DataHub + semantic catalog):
-cd .. && .\scripts\refresh_datamart_metadata.ps1 -TenantEtl -TenantId demo_tenant
-```
-
-**Phase 7 registry warehouse** — set `DATAMART_USE_TENANT_REGISTRY=true` in production so datamart uses `hrm_control.tenant_registry` only (no duplicate `DATAMART_DB_*`). Dev can keep `false` and point `DATAMART_DB_NAME` at `hrm_wh_*`.
-
-**Phase 9 JWT auth** — production: `MOCK_AUTH_ENABLED=false`, send `Authorization: Bearer <token>` (tenant + user in claims). Dev token:
-
-```bash
-cd backend
-python tools/create_dev_jwt.py --tenant-id demo_tenant --user-id my-user --print-curl
-```
-
-Frontend: set `REACT_APP_AUTH_TOKEN` to the JWT. Datamart dev without login: `MOCK_AUTH_ENABLED=true` and `DATAMART_REQUIRE_TENANT_HEADER=false`.
-
-**Phase 11 per-tenant semantic catalog** (ETL warehouses):
-
-```bash
-cd backend
-python tools/semantic_catalog_tool.py refresh --tenant demo_tenant --write
-python tools/semantic_catalog_tool.py validate --tenant demo_tenant
-# Or with metadata refresh:
-cd .. && .\scripts\refresh_datamart_metadata.ps1 -TenantEtl -TenantId demo_tenant
-```
-
-Catalogs live under `backend/app/services/ai_services/datamart/semantic_catalogs/{tenant_id}.yaml`.
-Until generated, tenant ETL falls back to `semantic_catalog.yaml`.
-
-**Full phase verification** (migrations + tests + live smoke):
-
-```powershell
-.\scripts\verify_datamart_phases.ps1
-# With API running:
-.\scripts\verify_datamart_phases.ps1 -ApiUrl http://127.0.0.1:8000
-```
-
-**Phase 10 live smoke** (real warehouse + optional running API):
-
-```powershell
-# After alembic upgrade head and DATAMART_DB_* → hrm_wh_demo_tenant
-cd backend
-python tools/smoke_datamart_phase10.py
-# With API on :8000
-..\scripts\smoke_datamart_phase10.ps1 -ApiUrl http://127.0.0.1:8000
-# Pytest (opt-in)
-$env:DATAMART_LIVE_TEST = "1"
-python -m pytest tests/datamart/test_live_smoke.py -m live -v
-```
-
-### 4 PostgreSQL Schemas (per tenant)
-
-| Role | Database | Host (production) | Contents |
-|------|----------|-------------------|----------|
-| **Application** | `hrm_platform` | Control-plane Postgres | `hrm_control.*` — tenants, ETL sources, registry |
-| **Warehouse** | `hrm_wh_{tenant_id}` | **Separate** analytics Postgres | Staging, marts, semantic views, ETL run logs |
-| **Source** | Customer DB | Customer network | Upstream HR data (configured in UI) |
-
-**Provisioning (default):** application DB is created by DBA / Docker `init-db.sh` (`APP_AUTO_PROVISION=false`). Per-tenant warehouse DBs are auto-created on first ETL or tenant register (`WAREHOUSE_AUTO_PROVISION=true`).
-
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for production split-server setup and [backend/.env.production.example](backend/.env.production.example).
-
-### Warehouse layers (per tenant)
-
-Default isolation (`WAREHOUSE_DEFAULT_ISOLATION=database`):
-
-| Layer | Schema | Purpose | Access |
-|-------|--------|---------|--------|
-| Raw | `hr_raw` | Source mirror (`stg_*`) | ETL only |
-| Mart | `hr` | Dimensional mart (`dim_*`, `fact_*`) | Backend |
-| Semantic | `hr_semantic` | AI-safe views (`vw_*`) | Backend + `ai_reader` |
-| Control | `hr_control` | ETL governance, watermarks | Backend |
-
-Legacy mode (`WAREHOUSE_DEFAULT_ISOLATION=schema`): prefixed schemas `{tenant_id}_hr*` on the application Postgres instance.
+Reports are built either by **chatting with an AI assistant**, by **uploading a sample Excel layout**, or by mixing both freely in one session. Output is branded Excel and PDF, with filtering, grouping, scheduling and audit.
 
 ---
 
-## Platform layers (v1.0)
+## 2. Non-negotiable rules
 
-### Ingestion
-Multi-source ETL: MySQL and/or PostgreSQL per tenant (Settings → **ETL Sources**). Watermark-based incremental loads. Multiple sources per tenant supported (product scenarios A/B/C in UI).
+These are the architectural guarantees. **Do not break them, even if a shortcut looks easier.**
 
-### HR Intelligence Core
-Deterministic, auditable analytics. No LLM at runtime for core metrics.
-
-| Component | Purpose |
-|-----------|---------|
-| `MetricResolver` | Resolves HR metrics from semantic views |
-| `ReportBuilder` | Headcount · Turnover · Payroll · Attendance · Leave |
-| `IntentEngine` | Rules-based classifier — no LLM |
-| `TimeResolver` | YAML-driven, period-aware resolution |
-| `Planner` | Maps intents to existing service calls |
-| `Composer` | Executes plans, generates structured answers |
-| `DriverService` | Variance decomposition |
+1. **Nobody touches raw schema directly.** All report logic goes through the **semantic layer** (business names → physical columns). The AI and the query engine both resolve fields through it.
+2. **The AI never writes SQL.** The AI returns a **structured spec** (JSON: fields, filters, grouping). Only the **Query Engine** turns a spec into SQL.
+3. **The AI never receives PII.** The AI sees metadata only — column headers, inferred types, semantic field names, the current spec. **Never employee records.** Strip Excel data rows *before* any AI call.
+4. **The spec is the source of truth; SQL is a compiled artifact.** SQL is generated from the spec and may be cached, but is never hand-edited. If cache is missing/stale → regenerate from the spec.
+5. **All SQL is parameterized and tenant-scoped.** No string concatenation. Tenant scope is enforced **server-side in the Query Engine**, never by the UI. Reporting uses a **read-only DB user on a read replica**.
+6. **Every report run and template change is audited.**
 
 ---
 
-## Quick Start
+## 3. Tech stack & libraries
 
-```bash
-# 1. Environment
-cp backend/.env.example backend/.env
-# Edit backend/.env — APPLICATION_DATABASE_URL, DB_ENCRYPTION_KEY, source DB if using register_tenant.py
+> **Version policy:** pins below are **major versions** known-good as of 2026. At project init, pin the *latest stable patch* within each major in `pyproject.toml` / `package.json`, then update deliberately.
 
-# 2. Docker (creates hrm_platform via init-db.sh; warehouse DBs on first ETL)
-docker compose up -d --build
+### 3.1 API style — REST (decision: **REST, not GraphQL**)
 
-# 3. Migrations — run automatically on API startup (Alembic upgrade head).
-#    Optional manual run: cd backend && alembic upgrade head
+The API is **REST/JSON over FastAPI**. GraphQL was considered and rejected for this product:
 
-# 4. Optional: register legacy tenant source from .env
-python scripts/register_tenant.py
+- **Query flexibility already lives in the report spec.** The "which fields / filters" dynamic part is the `data_spec` JSON, *not* a client query language. Adding GraphQL would duplicate that flexibility in two places.
+- **Most operations are actions, not graph reads** — `run report`, `publish version`, `upload excel`, `trigger schedule`. These map cleanly to REST endpoints (`POST /reports/{id}/run`).
+- **Security is simpler in REST** — tenant scoping, RBAC, rate limiting and audit are per-endpoint dependencies; GraphQL's single endpoint needs depth/field-level guards for the same guarantees.
+- **FastAPI gives auto OpenAPI docs + typed Pydantic models + frontend type generation** for free.
 
-# 5. Backend (Python 3.11 + SQLAlchemy 2.x on your machine)
-cd backend
-python -m pip install -r requirements.txt
-$env:PYTHONPATH = "."
-cd backend
-$env:PYTHONPATH = "."
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-# Or: .\run-dev.ps1  (same command + SQLAlchemy version check)
+> If external/partner integrations later demand it, a GraphQL gateway can be added *in front of* REST. Not now — it would be over-engineering.
 
-# 6. Verify
-curl http://localhost:8000/health
-# UI: http://localhost:5174 — ETL Sources → ETL Control → Run ETL
+### 3.2 Backend libraries (Python 3.13)
+
+| Library | Version | Used for |
+|---|---|---|
+| `fastapi` | ^0.115 | Web framework, routing, dependency injection |
+| `pydantic` | ^2 | Spec models, request/response validation, settings |
+| `uvicorn` | ^0.34 | ASGI server (dev + worker base) |
+| `gunicorn` | ^23 | Production process manager for Uvicorn workers |
+| `sqlalchemy` | ^2.0 | **Core** query building — parameterized SQL (no ORM, no raw strings) |
+| `psycopg` | ^3.2 | PostgreSQL driver; separate read-only pool for the replica |
+| `alembic` | ^1.14 | Metadata DB schema migrations |
+| `pandas` | ^2.2 | Excel parse + local type inference (rows stripped before AI) |
+| `openpyxl` | ^3.1 | Reading uploaded `.xlsx` layouts |
+| `xlsxwriter` | ^3.2 | Branded, formatted Excel export |
+| `weasyprint` | ^63 | HTML/CSS → PDF export (branded) |
+| `celery` | ^5.4 | Async jobs + scheduled runs (with Celery Beat) |
+| `redis` | ^5.2 | Redis client (cache + Celery broker/backend) |
+| `authlib` *(or `python-jose`)* | ^1.4 | OAuth2 / JWT handling |
+| `passlib[bcrypt]` | ^1.7 | Password hashing |
+| `structlog` | ^24 | Structured logging |
+| `httpx` | ^0.28 | Outbound calls to the AI provider |
+| `anthropic` | ^0.40 | Default AI provider SDK (swappable behind the adapter) |
+| `opentelemetry-sdk` | ^1.29 | Tracing across API → query → render |
+| `pytest`, `pytest-asyncio` | ^8 / ^0.25 | Backend tests |
+
+> **Self-hosted AI option:** `vllm` for serving an open-weight model (Llama/Mistral), reached through the same `AIProvider` interface — no core code changes.
+
+### 3.3 Frontend libraries (React 19 + TypeScript, Node 24 LTS)
+
+| Library | Version | Used for |
+|---|---|---|
+| `react`, `react-dom` | ^19 | UI framework |
+| `typescript` | ^5.7 | Type safety (mirrors backend Pydantic specs) |
+| `vite` | ^6 | Build tool + dev server |
+| `@tanstack/react-query` | ^5 | Server state, API caching |
+| `zustand` | ^5 | Builder working-state (lightweight; RTK if preference) |
+| `@dnd-kit/core` | ^6 | Drag-drop field selector + column reordering |
+| `@radix-ui/*` *(or `@mui/material`)* | latest | Accessible UI primitives / components |
+| `react-hook-form` + `zod` | ^7 / ^3 | Form state + client-side validation |
+| `axios` *(or fetch)* | ^1.7 | API client (typed wrapper) |
+| `recharts` | ^2 | Optional basic visual summaries (later) |
+| `vitest`, `@playwright/test` | ^2 / ^1.49 | Unit + e2e tests |
+
+### 3.4 Infrastructure
+
+| Component | Version | Used for |
+|---|---|---|
+| PostgreSQL (metadata DB) | 16 / 17 | Semantic layer, report defs, versions, audit |
+| PostgreSQL (datamart) | existing (18) | Reporting source — **read replica, read-only user** |
+| Redis | ^7 | Cache + Celery broker |
+| Nginx | ^1.27 | TLS termination, routing, rate limiting |
+| Docker + Compose | latest | Reproducible environments (K8s optional for prod) |
+| GitHub Actions | — | CI/CD (lint, test, build, deploy) |
+| Prometheus + Grafana + Sentry | latest | Metrics, dashboards, error tracking |
+
+---
+
+## 4. Architecture at a glance
+
+```
+Browser (Builder SPA, Viewer SPA)
+        │ HTTPS
+   Nginx (TLS, routing, rate limit)
+        │ REST/JSON
+   FastAPI backend
+   ├─ Auth & Tenant Guard
+   ├─ Semantic Layer Service
+   ├─ AI Adapter ───────────► AI provider  (metadata only, NO PII)
+   ├─ Query Engine ─────────► Datamart read replica (read-only)
+   ├─ Rendering Engine (Excel / PDF)
+   └─ Scheduler API
+   Celery Worker (async exports, scheduled runs)  ◄─► Redis
+   Metadata DB (PostgreSQL): semantic layer, report defs, versions, audit
 ```
 
-**Production:** copy `backend/.env.production.example` → `backend/.env`, set `MIGRATION_FAIL_FAST=true`, `RUN_MIGRATIONS_IN_ENTRYPOINT=true`, `RUN_MIGRATIONS_ON_STARTUP=false`, separate app and warehouse hosts. The backend image entrypoint runs `alembic upgrade head` once before uvicorn; Jenkins **Verify Deployment Health** waits for `/health` before marking the pipeline successful.
+See `Technical Architecture v1.0` for the full diagrams (system, build-time, run-time, security).
 
 ---
 
-## Key invariants (DO NOT BREAK)
+## 5. Data model (metadata DB — schema-per-tenant)
 
-1. AI never touches raw data — `ai_reader` role has SELECT-only on `*_hr_semantic.vw_*`
-2. HR report APIs use semantic views and `HrMetricResolver` — no ad-hoc SQL from the UI (Datamart Assistant uses read-only warehouse SQL in a separate, guarded pipeline)
-3. Every endpoint requires `Depends(verify_api_key)`
-4. `Answer.to_dict()` output shape is frozen
-5. `OntologyStore` taxonomy frozen as of v1.0
-6. `rules_sha` must appear on every mart row — audit backbone
-7. Source connectors: MySQL or PostgreSQL per tenant (`source_type` + ETL Sources UI)
-8. Multi-tenant warehouse: one `hrm_wh_{tenant_id}` database (default) or `{tenant_id}_hr*` schemas (legacy)
+PostgreSQL uses **schema-per-tenant** isolation (payroll-platform pattern). See [docs/architecture/SCHEMA_PER_TENANT_MIGRATION_PLAN.md](docs/architecture/SCHEMA_PER_TENANT_MIGRATION_PLAN.md).
+
+| Schema | Tables | Purpose |
+|---|---|---|
+| `platform` | `tenant_provision_status`, `ai_provider_configs_system` | Cross-tenant control plane |
+| `public` | Template DDL (cloned per tenant) | Alembic Phase 1 target |
+| `{tenant}` | All app tables below | Per-customer data via `search_path` |
+
+| Table (per tenant schema) | Key columns | Purpose |
+|---|---|---|
+| `semantic_models` | id, version, catalog (JSONB) | Versioned semantic layer |
+| `report_templates` | id, name, current_published_version_id, created_by | Logical report |
+| `report_template_versions` | id, template_id, version_no, data_spec (JSONB), presentation_spec (JSONB), semantic_version_ref, status | Immutable version snapshots |
+| `report_schedules` | id, template_id, cron, recipients, format, enabled | Scheduled delivery |
+| `ai_sessions` | id, template_id, messages (JSONB), created_by | Build-time chat |
+| `audit_log` | id, user_id, action, target_type, target_id, detail (JSONB), created_at | Immutable audit |
+| `sql_cache` (optional) | version_id, sql_text, semantic_version_ref | Cached compiled SQL |
+
+**New empty database:** run `alembic upgrade head` (greenfield baseline `0001_schema_per_tenant_baseline`). Manual tenant setup and data queries: [backend/scripts/sql/schema_per_tenant_manual.sql](backend/scripts/sql/schema_per_tenant_manual.sql). See [docs/architecture/REPORT_BUILDER_PG_ER.md](docs/architecture/REPORT_BUILDER_PG_ER.md).
 
 ---
 
-## Documentation
+## 6. The report definition (the heart of the system)
 
-| Doc | Purpose |
-|-----|---------|
-| [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Docker, migrations, production DB split, ETL scenarios |
-| [backend/.env.example](backend/.env.example) | Local / dev environment template |
-| [backend/.env.production.example](backend/.env.production.example) | Production template (split app + warehouse servers) |
+A template version stores **two JSONB blobs**. Keep them separate: presentation can change without rebuilding the query, and vice-versa.
+
+### 6.1 `data_spec` — drives the Query Engine
+
+```json
+{
+  "entity": "Employee",
+  "fields": [
+    { "ref": "employee.full_name", "label": "Employee Name" },
+    { "ref": "department.name",     "label": "Department" },
+    { "ref": "employee.join_date",  "label": "Joined" },
+    { "ref": "payroll.basic",       "label": "Basic Salary", "agg": null }
+  ],
+  "filters": [
+    { "ref": "employee.status", "op": "eq", "value": "active" },
+    { "ref": "employee.join_date", "op": "between", "param": "join_range" }
+  ],
+  "group_by": ["department.name"],
+  "aggregations": [
+    { "ref": "payroll.basic", "fn": "sum", "label": "Total Basic" }
+  ],
+  "sort": [{ "ref": "department.name", "dir": "asc" }],
+  "runtime_params": [
+    { "name": "join_range", "type": "date_range", "required": false }
+  ]
+}
+```
+
+> `ref` values are **semantic-layer references**, never physical table/column names. Filter values entered at run-time arrive as **bound parameters** (`param`/`runtime_params`), never inlined.
+
+### 6.2 `presentation_spec` — drives the Rendering Engine
+
+```json
+{
+  "title": "Active Employees by Department",
+  "branding": { "logo_id": "tenant_logo", "header": "...", "footer": "Confidential" },
+  "columns": [
+    { "ref": "employee.full_name", "width": 220 },
+    { "ref": "payroll.basic", "format": "currency", "align": "right" }
+  ],
+  "conditional_formats": [
+    { "ref": "payroll.basic", "when": "gt", "value": 100000, "style": "highlight" }
+  ],
+  "page": { "orientation": "portrait", "totals": true }
+}
+```
+
+### 6.3 Spec → SQL (Query Engine pipeline)
+
+```
+data_spec + runtime params
+   → resolve refs via semantic layer (pinned version)
+   → SQLAlchemy Core query build (parameterized)
+   → apply tenant scope + row limit + statement timeout   [guards.py]
+   → execute on read replica
+   → rows
+```
+
+---
+
+## 7. Folder structure (monorepo)
+
+```
+backend/
+├─ app/
+│  ├─ main.py
+│  ├─ core/            # config, security (JWT/RBAC), tenancy, logging
+│  ├─ api/v1/          # routers: templates, reports, semantic, ai, exports, schedules
+│  ├─ domain/          # pure models: report_spec, semantic, enums
+│  ├─ services/        # template_service (versioning), semantic, ai, audit
+│  ├─ query_engine/    # compiler, sql_builder (SQLAlchemy Core), filters, guards
+│  ├─ rendering/       # excel_renderer, pdf_renderer, templates/
+│  ├─ ai/              # base (AIProvider iface), anthropic_provider, selfhosted_provider, prompts/
+│  ├─ ingestion/       # excel_parser (headers+types, rows stripped)
+│  ├─ repositories/    # template_repo, semantic_repo, audit_repo
+│  ├─ db/              # metadata.py, datamart.py (read-only pool)
+│  └─ workers/         # celery_app, tasks, beat_schedule
+│  └─ migrations/      # alembic
+frontend/
+├─ src/
+│  ├─ features/builder/   # FieldSelector, FilterPanel, ChatAssistant, ExcelUpload, PreviewPane
+│  ├─ features/viewer/    # run + download
+│  ├─ features/templates/ # list + versions
+│  ├─ api/  components/  hooks/  store/  types/
+infra/    # docker-compose.yml, nginx/, k8s/
+docs/     # SRS.md, architecture.md
+```
+
+---
+
+## 8. Phased build plan
+
+Build in this order — each phase is shippable and de-risks the next.
+
+### Phase 0 — Foundations
+- [ ] Monorepo, docker-compose (api, worker, redis, metadata DB, nginx)
+- [ ] FastAPI skeleton + health check; React+Vite skeleton
+- [ ] Auth (OAuth2/JWT), RBAC, tenant resolution + Tenant Guard
+- [ ] Metadata DB + Alembic; read-only pool wired to the replica
+- **Done when:** a logged-in user is correctly scoped to their tenant on every request.
+
+### Phase 1 — Semantic layer + Query Engine *(highest-risk; do first)*
+- [ ] Semantic model: schema introspection → editable catalog (entities, dimensions, measures, joins)
+- [ ] `data_spec` model (Pydantic) + JSONB persistence
+- [ ] Query Engine: spec → parameterized SQL (SQLAlchemy Core)
+- [ ] Guards: tenant scope, row limit, statement timeout; execute on replica
+- [ ] Run a hard-coded spec end-to-end → rows
+- **Done when:** a spec returns correct, tenant-isolated rows with no raw SQL anywhere.
+
+### Phase 2 — Builder UI (manual, no AI yet)
+- [ ] Field selector (drag-drop), filter panel, grouping/sort, calculated fields
+- [ ] `presentation_spec`: column formats, branding (header/footer/logo), conditional formats
+- [ ] Live preview (sample rows)
+- [ ] Save template → version snapshot (draft); publish flow
+- **Done when:** a user builds, previews, and publishes a report by hand.
+
+### Phase 3 — Rendering & export
+- [ ] Excel renderer (XlsxWriter) with branding + formats
+- [ ] PDF renderer (WeasyPrint)
+- [ ] Viewer panel: list, run with runtime filters, download
+- **Done when:** published reports download as branded Excel and PDF.
+
+### Phase 4 — AI assistant
+- [ ] AI Adapter + `AIProvider` interface (anthropic_provider first)
+- [ ] Excel ingestion: parse headers, infer types (pandas), **strip rows**, suggest mapping → human confirm
+- [ ] NL request → `data_spec`; adjustment chat → updated spec
+- [ ] Interleave chat + Excel in one session
+- **Done when:** a full report is built by chat alone, and by Excel-then-chat, with **no PII leaving the boundary**.
+
+### Phase 5 — Scheduling, audit, hardening
+- [ ] Celery Beat schedules → run + email delivery; async export jobs
+- [ ] Audit log on all runs/exports/template changes
+- [ ] Versioning polish (rollback, semantic-version pinning)
+- [ ] Observability, rate limits, load test on replica
+- **Done when:** scheduled reports deliver, everything is audited, and the system is production-ready.
+
+---
+
+## 9. Local dev setup
+
+```bash
+# 1. clone, then bring up infra
+cd infra && docker compose up -d        # api, worker, redis, metadata db, nginx
+
+# 2. backend
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+alembic upgrade head
+uvicorn app.main:app --reload
+
+# 3. frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Environment: copy `.env.example` → `.env`. Required keys include metadata DB URL, **read-replica URL (read-only user)**, Redis URL, JWT secret, and AI provider key (only used by the AI Adapter).
+
+---
+
+## 10. Implementation gotchas
+
+- **Read-only pool:** the datamart connection must use a read-only user and a *separate* pool from the metadata DB. Never run reporting queries on the primary.
+- **Strip Excel rows in `ingestion/excel_parser.py` before the spec ever reaches the AI Adapter.** Type inference is local (pandas), not an AI task.
+- **Semantic version pinning:** store `semantic_version_ref` on each template version so old reports regenerate correctly after the mapping changes.
+- **Versioning trigger:** autosave drafts continuously; create an immutable version snapshot only on **publish**.
+- **No `localStorage` assumptions in shared spec types** — keep TS `types/` mirroring the backend Pydantic spec models so both sides stay in sync.
+- **Filter values are always bound parameters.** If you ever see a filter value inside an f-string, stop — that's a bug and a security hole.
+
+---
+
+## 11. Kick-off decisions still open
+
+1. Metadata DB: separate instance vs separate database on existing infra.
+2. Default AI provider + start ZDR + BAA contracting.
+3. UI library (Radix/shadcn vs MUI) and state lib (Zustand vs Redux Toolkit).
+4. Replica provisioning + read-only user (with DB team).
+5. Semantic-layer introspection + enrichment process and ownership.

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @page { size: A4; margin: 16mm 16mm; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #1A1A1A; font-size: 11px; }
+
+  /* One page per record. */
+  .record { page-break-after: always; }
+  .record:last-child { page-break-after: auto; }
+
+  .head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #1A1A1A;
+          padding-bottom: 10px; margin-bottom: 12px; }
+  .head .logo { width: 64px; height: 64px; border: 1px solid #D1D5DB; border-radius: 6px;
+                display: flex; align-items: center; justify-content: center; color: #9CA3AF;
+                font-size: 10px; overflow: hidden; flex: none; }
+  .head .logo img { max-width: 100%; max-height: 100%; }
+  .head .co { flex: 1; }
+  .head .co .name { font-size: 16px; font-weight: 700; }
+  .head .co .period { font-size: 11px; color: #4B5563; margin-top: 2px; }
+
+  .ident { margin-bottom: 10px; }
+  .ident .row { display: flex; gap: 6px; line-height: 1.6; }
+  .ident .row .k { width: 110px; color: #4B5563; }
+  .ident .row .s { width: 10px; color: #4B5563; }
+  .ident .row .v { font-weight: 600; }
+
+  table.lines { width: 100%; border-collapse: collapse; }
+  table.lines th { background: #007499; color: #fff; text-align: left; padding: 6px 8px;
+                   font-size: 10px; text-transform: uppercase; letter-spacing: .3px; }
+  table.lines th.num, table.lines td.num { text-align: right; }
+  table.lines td { padding: 4px 8px; border-bottom: 1px solid #EEF1F4; }
+  table.lines tr.caption td { color: #4B5563; font-style: italic; border-bottom: 1px solid #E5E7EB; }
+  table.lines tr.section td { background: #F3F4F6; font-weight: 700; padding-top: 6px; }
+  table.lines tr.total td { font-weight: 700; border-top: 1px solid #1A1A1A; }
+  table.lines tr.standalone td { font-weight: 700; font-size: 12px; background: #EAF4F7; }
+  td.blank { color: #9CA3AF; }
+
+  .detail { margin-top: 14px; }
+  .detail h3 { font-size: 11px; margin: 0 0 6px; text-transform: uppercase; letter-spacing: .3px; color: #374151; }
+  .detail .item { border: 1px solid #E5E7EB; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; }
+  .detail .item .line { display: flex; justify-content: space-between; line-height: 1.6; }
+  .detail .item .label { color: #4B5563; }
+  .detail .item .val { font-weight: 600; }
+  .detail .none { color: #9CA3AF; }
+
+  .disclaimer { margin-top: 16px; text-align: center; color: #6B7280; font-size: 9px;
+                border-top: 1px solid #E5E7EB; padding-top: 8px; }
+</style>
+</head>
+<body>
+  {% for rec in records %}
+  <div class="record">
+    <div class="head">
+      <div class="logo">{% if logo_data_url %}<img src="{{ logo_data_url }}" />{% else %}Logo{% endif %}</div>
+      <div class="co">
+        <div class="name">{{ company_name }}</div>
+        {% if rec.period_label %}<div class="period">{{ rec.period_label }}</div>{% endif %}
+      </div>
+    </div>
+
+    {% if rec.identity %}
+    <div class="ident">
+      {% for f in rec.identity %}
+      <div class="row"><span class="k">{{ f.label }}</span><span class="s">:</span><span class="v">{{ f.value }}</span></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if rec.sections %}
+    <table class="lines">
+      <thead>
+        <tr><th>Description</th><th class="num">Amount</th></tr>
+      </thead>
+      <tbody>
+        {% if value_label %}<tr class="caption"><td>{{ value_label }}</td><td></td></tr>{% endif %}
+        {% for s in rec.sections %}
+          {% if s.title %}<tr class="section"><td>{{ s.title }}</td><td></td></tr>{% endif %}
+          {% for ln in s.lines %}
+          <tr><td>{{ ln.label }}</td><td class="num {{ 'blank' if ln.blank }}">{{ ln.amount }}</td></tr>
+          {% endfor %}
+          {% if s.total %}
+          <tr class="{{ 'standalone' if not s.title and not s.lines else 'total' }}">
+            <td>{{ s.total.label }}</td><td class="num">{{ s.total.amount }}</td></tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% for blk in rec.detail_blocks %}
+    <div class="detail">
+      <h3>{{ blk.title }}</h3>
+      {% if blk.rows %}
+        {% for row in blk.rows %}
+        <div class="item">
+          {% for pair in row %}
+          <div class="line"><span class="label">{{ pair.label }}</span><span class="val">{{ pair.value }}</span></div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="none">No records.</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if footer %}<div class="disclaimer">{{ footer }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</body>
+</html>

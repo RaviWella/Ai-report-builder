@@ -1,221 +1,257 @@
-"""MintHRM — API key + tenant auth (mock headers or JWT)."""
+"""Auth: OAuth2/JWT + RBAC dependencies (Architecture §4.2, §7.4).
+
+Short-lived JWTs carry the caller's identity, tenant, and role. RBAC is enforced
+as per-endpoint FastAPI dependencies. Tenant scope itself is resolved in
+tenancy.py and ultimately enforced server-side in the Query Engine — never the UI.
+"""
+
 from __future__ import annotations
 
-import os
-import re
-from typing import Any, Optional
+import time
+from dataclasses import dataclass
 
-from fastapi import Header, HTTPException, Security, status
-from fastapi.security import APIKeyHeader
-from jose import JWTError, jwt
+from authlib.jose import JoseError, jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
 
 from app.core.config import settings
-from app.schemas.auth import TenantContext
+from app.domain.enums import Role
 
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-
-def _coerce_header(value: object) -> str:
-    """Normalize FastAPI Header() defaults and direct calls (not only DI)."""
-    if isinstance(value, str):
-        return value.strip()
-    return ""
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# auto_error=False so a missing token doesn't auto-401 — the dev bypass path needs
+# to run without one. Production (bypass off) still requires a valid Bearer token.
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.api_v1_prefix}/auth/token", auto_error=False
+)
 
 
-def mock_auth_enabled() -> bool:
-    """When true, X-Tenant-Id mock path is allowed; JWT still works if Bearer sent."""
-    raw = os.getenv("MOCK_AUTH_ENABLED", "true" if settings.DEBUG else "false")
-    return raw.strip().lower() in ("1", "true", "yes")
+def hash_password(raw: str) -> str:
+    return pwd_context.hash(raw)
 
 
-def verify_api_key(api_key: str = Security(api_key_header)) -> str:
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API key is required",
-            headers={"WWW-Authenticate": "API-Key"},
-        )
-    if api_key != settings.API_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid API key",
-        )
-    return api_key
+def verify_password(raw: str, hashed: str) -> bool:
+    return pwd_context.verify(raw, hashed)
 
 
-def validate_tenant_id(tenant_id: str) -> bool:
-    """Only alphanumeric + underscores — prevents schema-name injection."""
-    return bool(re.match(r"^[a-zA-Z0-9_]+$", tenant_id))
+def create_access_token(*, user_id: str, tenant_id: str, role: Role) -> str:
+    now = int(time.time())
+    header = {"alg": settings.jwt_algorithm}
+    payload = {
+        "sub": user_id,
+        "tenant_id": tenant_id,
+        "role": role.value,
+        "iat": now,
+        "exp": now + settings.jwt_access_ttl_seconds,
+        "iss": settings.app_name,
+    }
+    token = jwt.encode(header, payload, settings.jwt_secret)
+    return token.decode("utf-8") if isinstance(token, bytes) else token
 
 
-def _extract_bearer_token(authorization: Optional[str]) -> str:
-    if not authorization or not str(authorization).strip():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header is required",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    raw = str(authorization).strip()
-    prefix = "Bearer "
-    if not raw.startswith(prefix):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization must use Bearer scheme",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    token = raw[len(prefix) :].strip()
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Bearer token is empty",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return token
+@dataclass(frozen=True)
+class Principal:
+    """The authenticated caller. `tenant_id` here is the *claimed* tenant; the
+    Tenant Guard binds it as the active scope for the request."""
+
+    user_id: str
+    tenant_id: str
+    role: Role
+    logo_url: str | None = None
+    company_name: str | None = None
 
 
-def decode_access_token(token: str) -> dict[str, Any]:
-    """Validate HS256 JWT signed with SECRET_KEY / ALGORITHM."""
+@dataclass(frozen=True)
+class TokenClaims:
+    """Decoded JWT claims needed for HRIS-backed refresh."""
+
+    user_id: str
+    tenant_id: str
+    role: Role
+    hris_origin: str
+    sid: str
+    ver: int
+    logo_url: str | None = None
+
+
+def _decode(token: str, *, leeway: int = 0) -> dict:
     try:
-        return jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM],
-        )
-    except JWTError as exc:
+        claims = jwt.decode(token, settings.jwt_secret)
+        if leeway <= 0:
+            claims.validate()  # exp/iat
+        else:
+            now = int(time.time())
+            exp = int(claims.get("exp", 0))
+            if now > exp + leeway:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired token",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        return dict(claims)
+    except HTTPException:
+        raise
+    except JoseError as exc:  # pragma: no cover - thin wrapper
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid or expired access token: {exc}",
+            detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
 
-def _claim_str(payload: dict[str, Any], *keys: str) -> Optional[str]:
-    for key in keys:
-        val = payload.get(key)
-        if val is not None and str(val).strip():
-            return str(val).strip()
-    return None
+def _resolve_logo_url(claims: dict) -> str | None:
+    """Resolve tenant logo URL from JWT claims (logo_url or logo_file + hris_origin)."""
+    logo = claims.get("logo_url") or claims.get("company_logo_url")
+    if logo:
+        resolved = str(logo).strip()
+        if resolved:
+            return resolved
+    logo_file = claims.get("logo_file") or claims.get("com_logo")
+    if not logo_file or str(logo_file).strip() in ("", "0"):
+        return None
+    origin = claims.get("hris_origin")
+    if not origin:
+        return None
+    return f"{str(origin).rstrip('/')}/uploads/company/200/{str(logo_file).strip()}"
 
 
-def tenant_context_from_jwt_payload(payload: dict[str, Any]) -> TenantContext:
-    tenant_id = _claim_str(payload, "tenant_id", "tid", "org_id")
-    if not tenant_id:
+def _resolve_company_name(claims: dict) -> str | None:
+    """HRIS company display name from JWT (Company.com_name via SSO)."""
+    raw = claims.get("company_name") or claims.get("com_name")
+    if not raw:
+        return None
+    name = str(raw).strip()
+    if not name or name == "0":
+        return None
+    return name
+
+
+def refresh_leeway_seconds() -> int:
+    """Seconds past JWT exp that /auth/refresh will still accept the token.
+
+    Older deploys pin JWT_REFRESH_LEEWAY_SECONDS=60, which cannot cover a 15-minute
+    access token if the HRIS round-trip fails. Floor at 24h (HRIS PHP session).
+    """
+    return max(int(settings.jwt_refresh_leeway_seconds or 0), 86400)
+
+
+def reissue_sso_token(token: str) -> dict:
+    """Mint a new access JWT from a still-signed SSO token without calling HRIS.
+
+    Used when the customer's HRIS is unreachable, CSRF-blocked, or otherwise
+    fails for infrastructure reasons. Logout still wins when HRIS returns
+    version mismatch. Lifetime is capped by original auth_time / iat + leeway.
+    """
+    claims = _decode(token, leeway=refresh_leeway_seconds())
+    now = int(time.time())
+    try:
+        auth_time = int(claims.get("auth_time") or claims.get("iat") or 0)
+    except (TypeError, ValueError):
+        auth_time = 0
+    if auth_time <= 0 or now - auth_time > refresh_leeway_seconds():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token missing tenant_id (or tid / org_id claim)",
+            detail="Refresh window exceeded",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    if not validate_tenant_id(tenant_id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Invalid tenant ID in token. "
-                "Only alphanumeric characters and underscores allowed."
-            ),
-        )
-
-    user_id = _claim_str(payload, "user_id", "uid", "sub")
-    email = _claim_str(payload, "email")
-    name = _claim_str(payload, "name", "full_name")
-    role = _claim_str(payload, "role") or "user"
-
-    permissions: list[str] = []
-    raw_perm = payload.get("permissions") or payload.get("scopes") or payload.get("scope")
-    if isinstance(raw_perm, list):
-        permissions = [str(p) for p in raw_perm if p]
-    elif isinstance(raw_perm, str) and raw_perm.strip():
-        permissions = [p.strip() for p in raw_perm.replace(",", " ").split() if p.strip()]
-
-    return TenantContext(
-        tenant_id=tenant_id,
-        user_id=user_id,
-        email=email,
-        name=name,
-        permissions=permissions,
-        role=role,
-    )
-
-
-def create_access_token(
-    *,
-    tenant_id: str,
-    user_id: str,
-    email: Optional[str] = None,
-    name: Optional[str] = None,
-    role: str = "user",
-    permissions: Optional[list[str]] = None,
-    expires_minutes: Optional[int] = None,
-) -> str:
-    """Issue a dev/test JWT (same secret as decode_access_token)."""
-    from datetime import datetime, timedelta, timezone
-
-    expire = expires_minutes if expires_minutes is not None else settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    now = datetime.now(timezone.utc)
-    payload: dict[str, Any] = {
-        "tenant_id": tenant_id,
-        "user_id": user_id,
-        "email": email or f"{user_id}@local.dev",
-        "name": name or user_id,
-        "role": role,
-        "permissions": permissions or ["read", "write"],
-        "iat": now,
-        "exp": now + timedelta(minutes=expire),
-    }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-
-
-def get_current_tenant(
-    x_tenant_id: Optional[str] = Header(None, alias="X-Tenant-Id"),
-    x_user_id: Optional[str] = Header(None, alias="X-User-Id"),
-    authorization: Optional[str] = Header(None),
-) -> TenantContext:
-    """
-    Authenticated tenant context for HR and datamart routes.
-
-    - Bearer JWT: validated with SECRET_KEY (production path when MOCK_AUTH_ENABLED=false).
-    - Mock mode: X-Tenant-Id required unless Bearer token is sent (JWT still validated).
-    """
-    auth_hdr = _coerce_header(authorization)
-    tenant_hdr = _coerce_header(x_tenant_id)
-    user_hdr = _coerce_header(x_user_id)
-
-    if auth_hdr:
-        ctx = tenant_context_from_jwt_payload(decode_access_token(_extract_bearer_token(auth_hdr)))
-        if tenant_hdr and tenant_hdr != ctx.tenant_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="X-Tenant-Id does not match token tenant_id",
-            )
-        return ctx
-
-    if not mock_auth_enabled():
+    if not claims.get("hris_origin") or not claims.get("sid"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header is required",
+            detail="Token missing refresh claims (hris_origin, sid, ver)",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if not tenant_hdr:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="X-Tenant-Id header is required",
-        )
-    if not validate_tenant_id(tenant_hdr):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Invalid tenant ID format. "
-                "Only alphanumeric characters and underscores allowed."
-            ),
-        )
-    if not user_hdr:
-        from app.services.ai_services.datamart.config import DATAMART_DEFAULT_USER_ID
+    payload = {k: v for k, v in dict(claims).items() if k not in ("exp", "nbf")}
+    payload["iat"] = now
+    payload["exp"] = now + settings.jwt_access_ttl_seconds
+    payload["auth_time"] = auth_time
+    header = {"alg": settings.jwt_algorithm}
+    encoded = jwt.encode(header, payload, settings.jwt_secret)
+    access = encoded.decode("utf-8") if isinstance(encoded, bytes) else encoded
+    return {
+        "access_token": str(access),
+        "expires_in": int(settings.jwt_access_ttl_seconds),
+        "token_type": "bearer",
+    }
 
-        user_hdr = DATAMART_DEFAULT_USER_ID
-    return TenantContext(
-        tenant_id=tenant_hdr,
-        user_id=user_hdr,
-        email="testuser@example.com",
-        name="Test User",
-        permissions=["read", "write", "admin"],
-        role="admin",
-    )
+
+def decode_for_refresh(token: str) -> TokenClaims:
+    """Decode an SSO token for the refresh BFF path.
+
+    Signature and refresh claims (hris_origin, sid, ver) are required. Expiry is
+    allowed up to jwt_refresh_leeway_seconds (default 24h, matching HRIS PHP
+    session timeout) so a background tab can still renew while HRIS is logged in.
+    """
+    claims = _decode(token, leeway=refresh_leeway_seconds())
+    try:
+        return TokenClaims(
+            user_id=str(claims["sub"]),
+            tenant_id=str(claims["tenant_id"]),
+            role=Role(claims["role"]),
+            hris_origin=str(claims["hris_origin"]).rstrip("/"),
+            sid=str(claims["sid"]),
+            ver=int(claims["ver"]),
+            logo_url=_resolve_logo_url(claims),
+        )
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token missing refresh claims (hris_origin, sid, ver)",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+
+def _dev_bypass_enabled() -> bool:
+    # Hard guard: the bypass is ignored in production regardless of the flag.
+    return settings.dev_auth_bypass and settings.environment != "production"
+
+
+def get_principal(token: str | None = Depends(oauth2_scheme)) -> Principal:
+    # Local dev: run as a hardcoded identity, no token required.
+    if _dev_bypass_enabled():
+        return Principal(
+            user_id=settings.dev_user_id,
+            tenant_id=settings.dev_tenant_id,
+            role=Role(settings.dev_role),
+        )
+
+    # Production / normal: identity must arrive in the Authorization header.
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    claims = _decode(token)
+    try:
+        return Principal(
+            user_id=str(claims["sub"]),
+            tenant_id=str(claims["tenant_id"]),
+            role=Role(claims["role"]),
+            logo_url=_resolve_logo_url(claims),
+            company_name=_resolve_company_name(claims),
+        )
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Malformed token claims"
+        ) from exc
+
+
+def require_roles(*allowed: Role):
+    """Endpoint dependency factory enforcing RBAC (SRS §9)."""
+
+    def _dep(principal: Principal = Depends(get_principal)) -> Principal:
+        if principal.role not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient role for this action",
+            )
+        return principal
+
+    return _dep
+
+
+# Convenience role-bundles
+BuilderRoles = (Role.SUPPORT_ADMIN, Role.CLIENT_HR_ADMIN)
+ViewerRoles = (Role.SUPPORT_ADMIN, Role.CLIENT_HR_ADMIN, Role.CLIENT_END_USER)
+AdminRoles = (Role.SUPPORT_ADMIN, Role.SYSTEM)

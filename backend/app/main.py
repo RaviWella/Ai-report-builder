@@ -1,181 +1,143 @@
-"""MintHRM Intelligence Platform — FastAPI entry point."""
+"""FastAPI entrypoint (Architecture §4.1/§4.2).
+
+Wires the v1 routers, structured logging, a per-request request_id, and a health
+check. Auth/RBAC/tenant scoping live as per-endpoint dependencies (security §7).
+"""
+
 from __future__ import annotations
 
-import asyncio
-import logging
-import sys
-from contextlib import asynccontextmanager
+import uuid
 
-from fastapi import FastAPI
+import structlog
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import OperationalError as SAOperationalError
+from sqlalchemy.exc import TimeoutError as SATimeoutError
 
-from app.core.config import settings
-from app.core.database import init_db_sync
-from app.core.logging_setup import configure_logging
-from app.core.migrations import run_platform_migrations
-from app.core.request_logging import RequestLoggingMiddleware
-from app.health import check_application_health
-from app.api.routes import api_router
-import app.models  # noqa: F401 — registers SQLAlchemy models with Base
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s [%(name)s] %(message)s",
+from app.api.v1 import (
+    ai, ai_config, auth, documents, excel_mapping_chat, exports, learning, legacy_sql_converter,
+    platform, reports, rule_chat, schedules, semantic, templates, validations,
 )
-configure_logging(debug=settings.DEBUG)
-logger = logging.getLogger("app")
+from app.core.config import settings
+from app.core.logging import configure_logging, get_logger
+from app.db.pg_migrate import run_pg_migrations_if_enabled
+from app.db.postgres import init_postgres_database
+from app.db.pg_tenant_session import init_postgres_tenant_session_manager
 
+configure_logging()
+log = get_logger("app")
 
-def _bootstrap_datamart_llm_env() -> None:
-    """Run on import so `python -m uvicorn app.main:app` works without run-dev.ps1.
-
-    Clears a stale Windows OPENAI_API_KEY that would break datamart (LiteLLM 401).
-    """
-    try:
-        from app.services.ai_services.datamart.llm.llm_client import (
-            clear_llm_cache,
-            sync_process_openai_api_key,
-        )
-        from app.services.ai_services.datamart.llm.llm_settings import log_llm_config_status
-
-        clear_llm_cache()
-        sync_process_openai_api_key()
-        log_llm_config_status()
-    except Exception as exc:
-        logger.warning("Datamart LLM bootstrap skipped: %s", exc)
-
-
-_bootstrap_datamart_llm_env()
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan events."""
-    # Startup — Alembic on application DB (local uvicorn only; Docker uses entrypoint), then init_db
-    logger.info("Application startup: initializing database…")
-    if settings.RUN_MIGRATIONS_ON_STARTUP:
-        try:
-            run_platform_migrations()
-        except TimeoutError:
-            logger.error(
-                "Migration lock timeout — stop duplicate uvicorn processes or set "
-                "RUN_MIGRATIONS_ON_STARTUP=false in backend/.env"
-            )
-            if settings.MIGRATION_FAIL_FAST:
-                raise
-        except Exception:
-            if settings.MIGRATION_FAIL_FAST:
-                raise
-            logger.exception(
-                "Alembic upgrade failed (MIGRATION_FAIL_FAST=false — starting anyway)"
-            )
-    else:
-        logger.info(
-            "RUN_MIGRATIONS_ON_STARTUP=false — skipping lifespan Alembic "
-            "(Docker entrypoint already migrated or migrations disabled)"
-        )
-    try:
-        await asyncio.to_thread(init_db_sync)
-        logger.info("Application database ready")
-    except Exception as exc:
-        if settings.MIGRATION_FAIL_FAST:
-            raise
-        logger.warning("Database init failed (app will start anyway): %s", exc)
-
-    _bootstrap_datamart_llm_env()
-
-    if not settings.DB_ENCRYPTION_KEY:
-        logger.warning(
-            "DB_ENCRYPTION_KEY is not set — database connection CRUD will fail. "
-            'Generate: python -c "from cryptography.fernet import Fernet; '
-            'print(Fernet.generate_key().decode())"'
-        )
-
-    from app.services.ai_services.datamart.llm.llm_settings import resolve_llm_connection
-
-    try:
-        conn = resolve_llm_connection("gpt-oss:20b")
-        logger.info(
-            "Application startup complete — API ready on port (see uvicorn). "
-            "Datamart LLM: backend=%s model=%s base=%s",
-            conn.backend,
-            conn.model,
-            conn.base_url,
-        )
-    except Exception as exc:
-        logger.warning("Application startup complete (datamart LLM not ready: %s)", exc)
-
-    _warn_duplicate_port_8000_listeners()
-
-    yield
-    # Shutdown — nothing to clean up yet
-
-
-def _warn_duplicate_port_8000_listeners() -> None:
-    """Windows: an old python.exe on 127.0.0.1:8000 steals localhost traffic from uvicorn."""
-    if sys.platform != "win32":
-        return
-    try:
-        import subprocess
-
-        out = subprocess.check_output(
-            ["netstat", "-ano"],
-            text=True,
-            errors="ignore",
-            timeout=5,
-        )
-    except Exception:
-        return
-    listeners: list[tuple[str, str]] = []
-    for line in out.splitlines():
-        if ":8000" not in line or "LISTENING" not in line:
-            continue
-        parts = line.split()
-        if len(parts) >= 5:
-            listeners.append((parts[1], parts[-1]))
-    if len(listeners) > 1:
-        logger.warning(
-            "Multiple processes are listening on port 8000: %s. "
-            "Stop old python.exe PIDs (Task Manager or: Stop-Process -Id <pid>) "
-            "or localhost may hit a stale API without datamart LLM fixes.",
-            ", ".join(f"{addr} pid={pid}" for addr, pid in listeners),
-        )
-
+init_postgres_database()
+init_postgres_tenant_session_manager()
+run_pg_migrations_if_enabled()
 
 app = FastAPI(
-    title=settings.APP_NAME,
-    description="MintHRM Intelligence Platform API — HR analytics on top of MintHRM MySQL source.",
-    version="1.0.0",
-    lifespan=lifespan,
+    title=settings.app_name,
+    version="0.1.0",
+    description="AI-Assisted Self-Service Report Builder — REST/JSON over FastAPI (README §3.1).",
+    docs_url="/docs",
+    openapi_url="/openapi.json",
 )
 
+# CORS for the two SPAs (tighten origins per environment in deployment).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=["*"] if settings.environment == "local" else [],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(RequestLoggingMiddleware)
-
-app.include_router(api_router, prefix="/api/v1")
 
 
-@app.get("/")
-def root():
-    return {
-        "name": settings.APP_NAME,
-        "version": "1.0.0",
-        "docs": "/docs",
-        "redoc": "/redoc",
-    }
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(request_id=request_id, path=request.url.path)
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
-@app.get("/health")
-@app.get("/ready")
-def health_check():
-    """Liveness + readiness: DB reachable and Alembic revision present."""
-    payload = check_application_health()
-    status_code = 200 if payload["status"] == "healthy" else 503
-    return JSONResponse(content=payload, status_code=status_code)
+def _operational_error_detail(request: Request, exc: SAOperationalError) -> str:
+    """Map SQLAlchemy connection errors to actionable copy (not everything is VPN)."""
+    raw = str(getattr(exc, "orig", exc) or exc)
+    err = raw.lower()
+    path = request.url.path
+    api = settings.api_v1_prefix
+
+    datamart_op = (
+        path.startswith(f"{api}/reports")
+        or path.startswith(f"{api}/exports")
+        or path.endswith("/coverage")
+        or path.endswith("/rebuild")
+        or "/preview" in path
+        or "/render" in path
+    )
+
+    if "does not exist" in err and "database" in err:
+        if datamart_op:
+            return (
+                "This tenant's reporting warehouse is not set up yet. "
+                "Ask Mint support to provision the datamart for this customer, then try again."
+            )
+        return "Report Builder storage is not configured correctly. Contact your administrator."
+
+    if "authentication failed" in err or ("password" in err and "failed" in err):
+        return "Database authentication failed. Contact your administrator to verify Report Builder credentials."
+
+    if any(
+        token in err
+        for token in (
+            "connection refused",
+            "could not connect",
+            "timed out",
+            "timeout expired",
+            "network is unreachable",
+            "no route to host",
+            "could not translate host name",
+        )
+    ):
+        if datamart_op:
+            return (
+                "Could not reach this tenant's reporting warehouse. "
+                "If your site uses a VPN to the datamart, connect and try again."
+            )
+        return "Report Builder could not reach its storage database. Try again shortly or contact support."
+
+    if datamart_op:
+        return "Could not read from the reporting warehouse for this tenant. Try again or contact support."
+
+    if path.startswith(f"{api}/semantic"):
+        return "Could not load the field catalogue. Try again or contact support."
+
+    return "A database error occurred. Try again or contact support."
+
+
+@app.exception_handler(SATimeoutError)
+async def _db_pool_exhausted(request: Request, exc: SATimeoutError) -> JSONResponse:
+    """QueuePool checkout timeout — retryable, not a schema/provisioning bug."""
+    log.warning("database_pool_exhausted", path=request.url.path, error=str(exc)[:200])
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Report Builder is busy. Try again in a moment."},
+    )
+
+
+@app.exception_handler(SAOperationalError)
+async def _db_unreachable(request: Request, exc: SAOperationalError) -> JSONResponse:
+    """Turn database connection failures into clear, retryable messages."""
+    detail = _operational_error_detail(request, exc)
+    log.warning("database_unreachable", path=request.url.path, error=str(exc)[:200], detail=detail)
+    return JSONResponse(status_code=503, content={"detail": detail})
+
+
+@app.get("/health", tags=["meta"])
+def health() -> dict:
+    return {"status": "ok", "service": settings.app_name, "environment": settings.environment}
+
+
+_API = settings.api_v1_prefix
+for router in (auth, semantic, templates, reports, ai, ai_config, rule_chat, excel_mapping_chat, legacy_sql_converter, exports, schedules, documents, validations, learning, platform):
+    app.include_router(router.router, prefix=_API)

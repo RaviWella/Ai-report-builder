@@ -1,0 +1,83 @@
+{
+  "name": "golden_key_ot_monthly",
+  "sources": {
+    "a": {
+      "table": "mart.mart_attendance_daily",
+      "columns": ["employee_sk", "employee_no", "year_month", "work_date",
+                  "is_public_holiday", "worked_on_holiday", "worked_hours",
+                  "days_nopay", "late_minutes"]
+    },
+    "l": {
+      "table": "mart.mart_leave_daily",
+      "columns": ["employee_sk", "leave_date", "leave_category", "day_portion", "leave_minutes"],
+      "join": {
+        "type": "left_pick_one",
+        "on": ["employee_sk = employee_sk", "leave_date = work_date"],
+        "priority": {
+          "column": "leave_category",
+          "order": ["Lieu Leave", "Full Day Leave", "Short Leave"],
+          "tiebreak": "leave_minutes",
+          "tiebreak_dir": "desc"
+        }
+      }
+    }
+  },
+  "joins_note": "attendance is the driving grain; leave is picked one-per-day by priority (Lieu > Full > Short). No hand-written join view needed.",
+  "grain": ["employee_no", "year_month"],
+  "constants": { "min_per_day": 6, "month_days": 30, "ph": 8, "halfday": 4 },
+  "day_value": {
+    "define": { "adj_worked": "coalesce(worked_hours, 0)" },
+    "cases": [
+      { "when": "is_public_holiday and not worked_on_holiday", "value": "ph" },
+      { "when": "worked_on_holiday", "value": "adj_worked + ph" },
+      { "when": "leave_category == 'Lieu Leave'", "value": "ph" },
+      { "when": "leave_category == 'Full Day Leave' or day_portion == 'Full Day'", "value": "ph" },
+      { "when": "day_portion in ('First Half', 'Second Half')", "value": "adj_worked + halfday" },
+      { "when": "leave_category == 'Short Leave'", "value": "adj_worked + coalesce(leave_minutes, 0) / 60" },
+      { "when": "days_nopay > 0", "value": "0" }
+    ],
+    "else": "adj_worked"
+  },
+  "row_cases": {
+    "day_category": {
+      "cases": [
+        { "when": "is_public_holiday and not worked_on_holiday", "value": "'public_holiday'" },
+        { "when": "worked_on_holiday", "value": "'public_holiday_worked'" },
+        { "when": "leave_category == 'Lieu Leave'", "value": "'lieu'" },
+        { "when": "leave_category == 'Full Day Leave' or day_portion == 'Full Day'", "value": "'full_day_leave'" },
+        { "when": "day_portion in ('First Half', 'Second Half')", "value": "'half_day_leave'" },
+        { "when": "leave_category == 'Short Leave'", "value": "'short_leave'" },
+        { "when": "days_nopay > 0", "value": "'nopay'" }
+      ],
+      "else": "'normal'"
+    }
+  },
+  "rollup": {
+    "normal_hours": "sum(day_value) where day_category == 'normal'",
+    "public_holiday_hours": "sum(day_value) where day_category == 'public_holiday'",
+    "public_holiday_worked_hours": "sum(day_value) where day_category == 'public_holiday_worked'",
+    "half_day_leave_hours": "sum(day_value) where day_category == 'half_day_leave'",
+    "full_day_leave_hours": "sum(day_value) where day_category == 'full_day_leave'",
+    "short_leave_hours": "sum(coalesce(leave_minutes, 0) / 60) where day_category == 'short_leave'",
+    "lieu_hours": "sum(day_value) where day_category == 'lieu'",
+    "total_qualifying": "sum(day_value)",
+    "npl_days": "sum(days_nopay)",
+    "late_minutes": "sum(coalesce(late_minutes, 0))"
+  },
+  "compute": {
+    "standard_min": "month_days * min_per_day",
+    "applicable_min": "(month_days - npl_days) * min_per_day",
+    "ot_hours": "max(0, total_qualifying - applicable_min)"
+  },
+  "output": [
+    "employee_no", "year_month",
+    "normal_hours", "public_holiday_hours", "public_holiday_worked_hours",
+    "half_day_leave_hours", "full_day_leave_hours", "short_leave_hours", "lieu_hours",
+    "npl_days", "late_minutes",
+    "total_qualifying", "standard_min", "applicable_min", "ot_hours"
+  ],
+  "filters": [
+    { "name": "date_from", "type": "date", "required": true, "label": "From", "column": "work_date", "op": "gte" },
+    { "name": "date_to", "type": "date", "required": true, "label": "To", "column": "work_date", "op": "lte" }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "name": "meal_plan_allowance",
+  "source": "mart.mart_attendance_daily",
+  "grain": ["employee_no", "work_date"],
+  "constants": { "meal_rate": 352 },
+  "row_value": {
+    "define": {
+      "elig": "employee_category in ('Shopfloor Associate', 'Supervisory') and scheduled_shift in ('Production Shift - 01', 'Production Shift - 02', 'Production Shift - 03', 'D Production Shift 01', 'D Production Shift 03', 'Production Shift - 01 - Sat', 'Production Shift - 02 - Sat', 'Production Shift - 03 - Sat', 'Saturday Special Production Shift')",
+      "reached_6am": "((employee_category == 'Supervisory' and punch_out_time >= time('04:30:00')) or (employee_category == 'Shopfloor Associate' and punch_out_time >= time('05:00:00'))) and punch_out_time <= time('09:00:00')",
+      "started_6am": "punch_in_time >= time('04:00:00') and punch_in_time < time('09:00:00')",
+      "started_2pm": "punch_in_time >= time('11:00:00') and punch_in_time < time('18:00:00')",
+      "started_night": "punch_in_time >= time('19:00:00')"
+    },
+    "cases": [
+      { "when": "elig and day_name in ('Saturday', 'Sunday') and started_6am and reached_6am",
+        "value": "5" },
+      { "when": "elig and day_name in ('Saturday', 'Sunday') and started_6am and ((employee_category == 'Supervisory' and punch_out_time >= time('19:30:00')) or (employee_category == 'Shopfloor Associate' and punch_out_time >= time('20:00:00')))",
+        "value": "3" },
+      { "when": "elig and day_name in ('Saturday', 'Sunday') and started_6am and ((employee_category == 'Supervisory' and punch_out_time >= time('14:30:00')) or (employee_category == 'Shopfloor Associate' and punch_out_time >= time('15:00:00')))",
+        "value": "2" },
+      { "when": "elig and day_name in ('Saturday', 'Sunday') and started_6am and ((employee_category == 'Supervisory' and punch_out_time >= time('09:30:00')) or (employee_category == 'Shopfloor Associate' and punch_out_time >= time('10:00:00')))",
+        "value": "1" },
+      { "when": "elig and day_name in ('Saturday', 'Sunday') and started_night and reached_6am",
+        "value": "1" },
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_6am and reached_6am",
+        "value": "3" },
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_2pm and reached_6am",
+        "value": "2" },
+      { "when": "elig and day_name not in ('Saturday', 'Sunday') and started_night and reached_6am",
+        "value": "1" }
+    ],
+    "else": "0"
+  },
+  "row_cases": {
+    "day_type": {
+      "cases": [
+        { "when": "day_name == 'Saturday'", "value": "'SAT'" },
+        { "when": "day_name == 'Sunday'", "value": "'SUN'" },
+        { "when": "is_public_holiday", "value": "'HOL'" }
+      ],
+      "else": "'WOK'"
+    }
+  },
+  "rollup": {
+    "count": "max(row_value)",
+    "employee_category": "max(employee_category)",
+    "full_name": "max(full_name)",
+    "day_type": "max(day_type)",
+    "punch_in_time": "max(punch_in_time)",
+    "punch_out_time": "max(punch_out_time)"
+  },
+  "compute": {
+    "amount": "count * meal_rate",
+    "wt": "'WT'"
+  },
+  "having": "count >= 1",
+  "order_by": ["employee_no", "work_date"],
+  "output": ["employee_no", "work_date", "employee_category", "full_name", "day_type",
+             "punch_in_time", "punch_out_time", "count", "amount", "wt", "end_date"],
+  "filters": [
+    { "name": "date_from", "type": "date", "required": true, "label": "From", "column": "work_date", "op": "gte" },
+    { "name": "date_to", "type": "date", "required": true, "label": "To", "column": "work_date", "op": "lte", "expose_as": "end_date" }
+  ]
+}

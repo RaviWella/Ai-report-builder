@@ -1,0 +1,34 @@
+{
+  "name": "statutory_nopay",
+  "sources": {
+    "np": {
+      "table": "core.fct_nopay_day",
+      "columns": ["employee_sk", "nopay_date", "approved_nopay_days"]
+    },
+    "emp": {
+      "table": "mart.mart_employee",
+      "columns": ["employee_sk", "employee_no", "initials_name", "branch", "attendance_group"],
+      "join": {"type": "left", "on": ["employee_sk = employee_sk"]}
+    }
+  },
+  "grain": ["employee_no"],
+  "row_value": {
+    "cases": [
+      { "when": "attendance_group == 'PH/TB Non Executive' and coalesce(approved_nopay_days, 0) != 0",
+        "value": "approved_nopay_days" }
+    ],
+    "else": "0"
+  },
+  "rollup": {
+    "nopay_days": "sum(row_value)",
+    "initials_name": "max(initials_name)",
+    "branch": "max(branch)"
+  },
+  "having": "nopay_days > 0",
+  "order_by": ["employee_no"],
+  "output": ["employee_no", "initials_name", "branch", "nopay_days", "end_date"],
+  "filters": [
+    { "name": "date_from", "type": "date", "required": true, "label": "From", "column": "nopay_date", "op": "gte" },
+    { "name": "date_to", "type": "date", "required": true, "label": "To", "column": "nopay_date", "op": "lte", "expose_as": "end_date" }
+  ]
+}

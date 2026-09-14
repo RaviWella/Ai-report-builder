@@ -1,0 +1,69 @@
+# Local dev stack (README §9, Architecture §9): api, worker, beat, redis,
+# metadata db, nginx. The datamart read replica is EXTERNAL (reach via VPN) and
+# is NOT provisioned here — it is referenced by DATAMART_RO_URL.
+name: minthrm-report-builder
+
+services:
+  metadata-db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: minthrm_reports
+    ports: ["5432:5432"]
+    volumes: ["metadata_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d minthrm_reports"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  api:
+    build: ../backend
+    env_file: ../backend/.env
+    environment:
+      METADATA_DB_URL: postgresql+psycopg://app:app@metadata-db:5432/minthrm_reports
+      PG_ALLOW_UNREGISTERED_TENANTS: "true"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      RESULT_CACHE_URL: redis://redis:6379/3
+    depends_on:
+      metadata-db: { condition: service_healthy }
+      redis: { condition: service_started }
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports: ["8000:8000"]
+    volumes: ["../backend:/app"]
+
+  worker:
+    build: ../backend
+    env_file: ../backend/.env
+    environment:
+      METADATA_DB_URL: postgresql+psycopg://app:app@metadata-db:5432/minthrm_reports
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      RESULT_CACHE_URL: redis://redis:6379/3
+    depends_on: [metadata-db, redis]
+    command: celery -A app.workers.celery_app.celery_app worker -l info
+
+  beat:
+    build: ../backend
+    env_file: ../backend/.env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on: [redis]
+    command: celery -A app.workers.beat_schedule.celery_app beat -l info
+
+  nginx:
+    image: nginx:1.27-alpine
+    volumes: ["./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro"]
+    depends_on: [api]
+    ports: ["8080:80"]
+
+volumes:
+  metadata_data:

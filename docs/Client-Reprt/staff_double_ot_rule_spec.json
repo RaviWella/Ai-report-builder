@@ -1,0 +1,83 @@
+{
+  "name": "staff_double_ot",
+  "source": "mart.mart_attendance_daily",
+  "grain": ["employee_no", "work_date"],
+
+  "row_value": {
+    "define": {
+      "elig": "employee_category in ('Shopfloor Associate', 'Supervisory') and scheduled_shift in ('Production Shift - 01', 'Production Shift - 02', 'Production Shift - 03', 'D Production Shift 01', 'D Production Shift 03', 'Production Shift - 01 - Sat', 'Production Shift - 02 - Sat', 'Production Shift - 03 - Sat', 'Saturday Special Production Shift')",
+
+      "shift_plausible": "hours_between(punch_in_time, shift_start_time) >= -4 and hours_between(punch_in_time, shift_start_time) <= 4",
+      "shift_crosses_midnight": "shift_end_time < shift_start_time",
+
+      "shift_end_same_day": "work_date + shift_end_time",
+      "shift_end_next_day": "work_date + 1 + shift_end_time"
+    },
+
+    "cases": [
+      { "when": "elig", "value": "1" }
+    ],
+    "else": "0"
+  },
+
+  "row_cases": {
+    "prior_ot": {
+      "cases": [
+        { "when": "elig and shift_plausible and hours_between(punch_in_time, shift_start_time) >= 0.5",
+          "value": "hours_between(punch_in_time, shift_start_time)" }
+      ],
+      "else": "0"
+    },
+    "post_ot": {
+      "cases": [
+        { "when": "elig and shift_plausible and shift_crosses_midnight and hours_between(shift_end_next_day, punch_out_datetime) >= 0.5",
+          "value": "hours_between(shift_end_next_day, punch_out_datetime)" },
+        { "when": "elig and shift_plausible and (not shift_crosses_midnight) and hours_between(shift_end_same_day, punch_out_datetime) >= 0.5",
+          "value": "hours_between(shift_end_same_day, punch_out_datetime)" }
+      ],
+      "else": "0"
+    }
+  },
+
+  "rollup": {
+    "prior_ot":            "max(prior_ot)",
+    "post_ot":              "max(post_ot)",
+    "full_name":            "max(full_name)",
+    "scheduled_shift":      "max(scheduled_shift)",
+    "shift_start_time":     "max(shift_start_time)",
+    "shift_end_time":       "max(shift_end_time)",
+    "punch_in_time":        "max(punch_in_time)",
+    "punch_out_datetime":   "max(punch_out_datetime)"
+  },
+
+  "compute": {
+    "total_ot":   "prior_ot + post_ot",
+    "ot_balance": "max(0, total_ot - 8)",
+    "wt":         "4010"
+  },
+
+  "having": "ot_balance > 0",
+  "order_by": ["employee_no", "work_date"],
+
+  "output": [
+    "employee_no",
+    "work_date",
+    "full_name",
+    "scheduled_shift",
+    "punch_in_time",
+    "punch_out_datetime",
+    "shift_start_time",
+    "shift_end_time",
+    "prior_ot",
+    "post_ot",
+    "total_ot",
+    "ot_balance",
+    "wt",
+    "end_date"
+  ],
+
+  "filters": [
+    { "name": "date_from", "type": "date", "required": true, "label": "From", "column": "work_date", "op": "gte" },
+    { "name": "date_to",   "type": "date", "required": true, "label": "To",   "column": "work_date", "op": "lte", "expose_as": "end_date" }
+  ]
+}
