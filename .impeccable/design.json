@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-05T04:00:00.000Z",
+  "title": "Design System: MintHRM Intelligence Platform",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Command Teal",
+        "canonical": "oklch(52% 0.11 180)",
+        "tonalRamp": [
+          "oklch(22% 0.06 180)",
+          "oklch(30% 0.08 180)",
+          "oklch(38% 0.09 180)",
+          "oklch(45% 0.10 180)",
+          "oklch(52% 0.11 180)",
+          "oklch(60% 0.10 180)",
+          "oklch(72% 0.08 180)",
+          "oklch(92% 0.04 180)"
+        ]
+      },
+      "primary-light": {
+        "role": "primary",
+        "displayName": "Teal Mist",
+        "canonical": "oklch(95% 0.04 180)",
+        "tonalRamp": [
+          "oklch(40% 0.08 180)",
+          "oklch(55% 0.09 180)",
+          "oklch(65% 0.08 180)",
+          "oklch(75% 0.06 180)",
+          "oklch(85% 0.05 180)",
+          "oklch(90% 0.04 180)",
+          "oklch(93% 0.04 180)",
+          "oklch(97% 0.03 180)"
+        ]
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "Command Sidebar",
+        "canonical": "oklch(27% 0.03 250)",
+        "tonalRamp": [
+          "oklch(15% 0.02 250)",
+          "oklch(20% 0.02 250)",
+          "oklch(25% 0.03 250)",
+          "oklch(27% 0.03 250)",
+          "oklch(35% 0.03 250)",
+          "oklch(45% 0.03 250)",
+          "oklch(55% 0.03 250)",
+          "oklch(75% 0.02 250)"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(20% 0.03 250)",
+        "tonalRamp": [
+          "oklch(15% 0.03 250)",
+          "oklch(20% 0.03 250)",
+          "oklch(30% 0.03 250)",
+          "oklch(40% 0.03 250)",
+          "oklch(50% 0.03 250)",
+          "oklch(60% 0.02 250)",
+          "oklch(75% 0.02 250)",
+          "oklch(92% 0.01 250)"
+        ]
+      },
+      "accent-datamart": {
+        "role": "secondary",
+        "displayName": "Datamart Blue (deprecated)",
+        "canonical": "oklch(55% 0.20 265)",
+        "tonalRamp": [
+          "oklch(25% 0.12 265)",
+          "oklch(35% 0.15 265)",
+          "oklch(45% 0.18 265)",
+          "oklch(50% 0.19 265)",
+          "oklch(55% 0.20 265)",
+          "oklch(65% 0.16 265)",
+          "oklch(80% 0.08 265)",
+          "oklch(95% 0.03 265)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles — one per view, 24px bold."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section and table column headers."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions, table cells, banners."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels and compact metadata; prefer sentence case."
+      },
+      "metric": {
+        "displayName": "Metric",
+        "purpose": "MetricCard values — 30px bold tabular figures."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "SQL blocks, connection strings, ETL identifiers."
+      }
+    },
+    "shadows": [
+      {
+        "name": "toast-lift",
+        "value": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+        "purpose": "Toast notifications — transient feedback only."
+      },
+      {
+        "name": "dm-ambient",
+        "value": "0 1px 2px rgba(15, 23, 42, 0.05)",
+        "purpose": "Datamart panel separation at rest."
+      },
+      {
+        "name": "dm-raised",
+        "value": "0 4px 16px rgba(15, 23, 42, 0.08)",
+        "purpose": "Datamart floating sidebar and composer emphasis."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default color and opacity transitions, 150–250ms."
+      },
+      {
+        "name": "dm-fade-up",
+        "value": "dmFadeUp 0.35s ease-out",
+        "purpose": "Datamart message entrance — opacity + translateY(12px)."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ],
+    "zIndex": [
+      { "name": "dropdown", "value": 20 },
+      { "name": "sticky", "value": 10 },
+      { "name": "modal-backdrop", "value": 30 },
+      { "name": "modal", "value": 40 },
+      { "name": "toast", "value": 50 }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default call to action — Run ETL, Save source, confirm modals.",
+      "html": "<button type=\"button\" class=\"ds-btn-primary\">Run ETL</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; background: var(--color-primary, #0f766e); color: #ffffff; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: #0d9488; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.3); } .ds-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Export, preview, and test-connection actions on tinted teal background.",
+      "html": "<button type=\"button\" class=\"ds-btn-secondary\">Export Excel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; gap: 6px; background: #ccfbf1; color: #0f766e; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-secondary:hover { background: #99f6e4; } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.3); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Standard form field for ETL source configuration and filters.",
+      "html": "<label class=\"ds-input-wrap\"><span class=\"ds-input-label\">Host</span><input type=\"text\" class=\"ds-input\" placeholder=\"db.example.com\" /></label>",
+      "css": ".ds-input-wrap { display: block; font-family: ui-sans-serif, system-ui, sans-serif; } .ds-input-label { display: block; font-size: 0.875rem; font-weight: 500; color: #334155; margin-bottom: 6px; } .ds-input { width: 100%; box-sizing: border-box; background: #ffffff; color: #0f172a; font-size: 0.875rem; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; transition: border-color 0.2s, box-shadow 0.2s; } .ds-input::placeholder { color: #94a3b8; } .ds-input:focus { outline: none; border-color: #14b8a6; box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.3); }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Left navigation link — icon + label, teal active state on dark sidebar.",
+      "html": "<a href=\"#\" class=\"ds-nav-item ds-nav-item--active\"><svg class=\"ds-nav-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/></svg>Dashboard</a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 20px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; color: #cbd5e1; text-decoration: none; transition: background-color 0.2s, color 0.2s; } .ds-nav-item:hover { background: #1e293b; color: #f1f5f9; } .ds-nav-item--active { background: rgba(15, 118, 110, 0.3); color: #5eead4; font-weight: 500; } .ds-nav-item:focus-visible { outline: 2px solid #14b8a6; outline-offset: -2px; } .ds-nav-icon { flex-shrink: 0; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "button-secondary",
+      "description": "ETL run status and primary-source badges.",
+      "html": "<span class=\"ds-chip ds-chip--success\">completed</span>",
+      "css": ".ds-chip { display: inline-block; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; padding: 2px 8px; border-radius: 9999px; } .ds-chip--success { background: #dcfce7; color: #15803d; } .ds-chip--warning { background: #fef9c3; color: #a16207; } .ds-chip--danger { background: #fee2e2; color: #b91c1c; } .ds-chip--primary { background: #ccfbf1; color: #0f766e; }"
+    },
+    {
+      "name": "Metric Card",
+      "kind": "card",
+      "refersTo": "card-metric",
+      "description": "KPI display on Dashboard and HR report pages.",
+      "html": "<div class=\"ds-metric-card\"><span class=\"ds-metric-label\">Active headcount</span><span class=\"ds-metric-value\">1,248</span></div>",
+      "css": ".ds-metric-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 4px; font-family: ui-sans-serif, system-ui, sans-serif; } .ds-metric-label { font-size: 0.75rem; font-weight: 500; color: #64748b; } .ds-metric-value { font-size: 1.875rem; font-weight: 700; line-height: 1; color: #0f172a; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Data Table Container",
+      "kind": "card",
+      "refersTo": "card-metric",
+      "description": "White bordered table wrapper used across HR reports.",
+      "html": "<div class=\"ds-table-wrap\"><table class=\"ds-table\"><thead><tr><th>Month</th><th class=\"ds-table-num\">Active EOM</th></tr></thead><tbody><tr><td>2025-12</td><td class=\"ds-table-num\">1,248</td></tr></tbody></table></div>",
+      "css": ".ds-table-wrap { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow-x: auto; } .ds-table { width: 100%; border-collapse: collapse; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; } .ds-table th { padding: 12px 16px; text-align: left; font-weight: 600; color: #475569; background: #f8fafc; border-bottom: 1px solid #e2e8f0; } .ds-table td { padding: 10px 16px; color: #334155; border-bottom: 1px solid #f1f5f9; } .ds-table tbody tr:hover { background: rgba(248, 250, 252, 0.8); } .ds-table-num { text-align: right; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Toast Notification",
+      "kind": "custom",
+      "refersTo": "card-metric",
+      "description": "Transient feedback — target state removes side stripe, uses full border tint.",
+      "html": "<div class=\"ds-toast ds-toast--success\" role=\"status\"><div class=\"ds-toast-icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#16a34a\" stroke-width=\"2\"><path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\"/><polyline points=\"22 4 12 14.01 9 11.01\"/></svg></div><div><p class=\"ds-toast-title\">Source saved</p><p class=\"ds-toast-msg\">Connection tested successfully.</p></div></div>",
+      "css": ".ds-toast { display: flex; gap: 10px; min-width: 280px; max-width: 384px; padding: 12px; background: #ffffff; border: 1px solid #a7f3d0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-toast-icon { padding: 6px; background: #d1fae5; border-radius: 8px; flex-shrink: 0; } .ds-toast-title { font-size: 0.875rem; font-weight: 500; color: #064e3b; margin: 0; } .ds-toast-msg { font-size: 0.75rem; color: #64748b; margin: 2px 0 0; } .ds-toast--error { border-color: #fecaca; } .ds-toast--error .ds-toast-icon { background: #fee2e2; } .ds-toast--error .ds-toast-title { color: #7f1d1d; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Workforce Command",
+    "overview": "MintHRM is an HR operations command center: dense enough for payroll analysts and HR managers working through month-end, clear enough that a first-time user can find a report without training. Teal is the authority color. It marks where the system is active, where data is trustworthy, and where the user should act next. The interface should feel like a serious internal tool, not a marketing landing page or a generic AI dashboard.\n\nThe app splits into two surfaces today: a Tailwind-based HR shell (reports, ETL, settings) and a custom CSS Datamart workspace (chat, templates). The design direction is committed teal unification: one brand through-line, with Datamart allowed slightly more lift (shadow, motion) while HR reports stay flat and border-led.",
+    "keyCharacteristics": [
+      "Committed teal primary (#0f766e) on navigation active states, primary buttons, and status banners",
+      "Single sans stack (system UI) with fixed rem scale, not fluid type",
+      "Flat HR report surfaces: white cards on slate-50 canvas, 1px borders",
+      "Hybrid elevation: HR flat at rest; Datamart panels use light shadow vocabulary",
+      "Confident, tactile buttons: solid fills, visible hover darkening, teal focus rings",
+      "Data-first density: tables, metric grids, and period filters over decorative chrome"
+    ],
+    "rules": [
+      {
+        "name": "The Committed Teal Rule",
+        "body": "Teal appears on primary actions, active navigation, and positive system status. It is never decorative fill on idle cards. If a surface does not invite action or indicate selection, it stays neutral.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Washed Gray Rule",
+        "body": "Gray text (slate-400–slate-500) on tinted backgrounds (teal-50, red-50, amber-50) is prohibited. Use a darker shade of the background hue or ink at reduced opacity.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Scale Rule",
+        "body": "Product UI uses fixed rem steps (text-xs through text-2xl), not fluid clamp headings. Users view at consistent DPI; exaggerated display type creates noise in sidebars and dense tables.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "Do not add a second sans for headings. Hierarchy is weight and size, not font switching.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat HR Rule",
+        "body": "Metric cards and data tables on HR routes do not carry box-shadow at rest. Hover may tint row background (slate-50/80), not lift the card.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Shadow-on-State Rule",
+        "body": "Shadows appear as feedback (toast, modal, mobile sidebar overlay), not as default card decoration.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use Command Teal (#0f766e) for every primary action and active nav state across HR and Datamart.",
+      "Do keep HR report pages flat: white card + 1px border on #f8fafc canvas.",
+      "Do use skeleton placeholders for loading metric grids and tables (target state; replace text-only Loading… pulses).",
+      "Do pair icons with text labels in navigation and primary actions (16px icon, text-sm label).",
+      "Do honor prefers-reduced-motion: reduce on all transitions and entrance animations.",
+      "Do use semantic color only for status (success, warning, danger), never as decoration."
+    ],
+    "donts": [
+      "Don't use border-left or border-right greater than 1px as a colored accent stripe on cards, toasts, or list items (no border-l-4 status toasts; no w-1 source card stripes).",
+      "Don't introduce Datamart Blue (#2b5eec) or gradient avatars on new components; unify on teal.",
+      "Don't put uppercase tracked eyebrows above every dashboard section; use sentence-case titles or spacing alone for grouping.",
+      "Don't use identical metric-card grids without hierarchy (hero metrics vs supporting stats).",
+      "Don't use gray text on colored tinted backgrounds without contrast verification.",
+      "Don't animate width, height, or margin for layout; use transform and opacity.",
+      "Don't use arbitrary z-index (z-[100]); use a semantic scale (toast: 50, modal backdrop: 40, modal: 50).",
+      "Don't ship glassmorphism, gradient text, or hero-metric SaaS templates (big number + gradient accent + eyebrow kicker)."
+    ]
+  }
+}

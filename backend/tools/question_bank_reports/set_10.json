@@ -1,0 +1,174 @@
+{
+  "tenant": "demo_tenant",
+  "set": 10,
+  "set_count": 10,
+  "set_size": 6,
+  "index_range": [
+    54,
+    59
+  ],
+  "total": 6,
+  "passed": 6,
+  "failed": 0,
+  "elapsed_seconds": 276.7,
+  "results": [
+    {
+      "index": 54,
+      "id": "advanced_executive:Executive dashboard by branch: active headcount,",
+      "section": "advanced_executive",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "attrition.rate_by_department",
+      "domain": "attrition",
+      "tables": [
+        "vw_turnover",
+        "vw_headcount",
+        "mart_horizontal_paysheet_core",
+        "mart_employee_current",
+        "dim_org_unit",
+        "payroll_report_column_config",
+        "dim_canonical_pay_item_seed",
+        "mart_processed_payroll_summary"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_payroll_summary",
+        "fact_leave_balance"
+      ],
+      "elapsed_ms": 49675
+    },
+    {
+      "index": 55,
+      "id": "advanced_executive:For each branch, compute revenue proxy metrics: ",
+      "section": "advanced_executive",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "leave.detail_list",
+      "domain": "leave",
+      "tables": [
+        "dim_employee",
+        "vw_leave_summary",
+        "mart_horizontal_paysheet_core",
+        "vw_headcount",
+        "fact_leave_balance",
+        "mart_employee_current"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_payroll_summary",
+        "fct_overtime"
+      ],
+      "elapsed_ms": 38548
+    },
+    {
+      "index": 56,
+      "id": "advanced_executive:Identify departments with rising attrition (last",
+      "section": "advanced_executive",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "attendance",
+      "tables": [
+        "dim_org_unit",
+        "dim_employee",
+        "mart_employee_current",
+        "vw_headcount",
+        "mart_horizontal_paysheet_core",
+        "fact_attendance",
+        "dim_canonical_pay_item_seed",
+        "vw_attendance_summary"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_turnover",
+        "mart_headcount_monthly"
+      ],
+      "elapsed_ms": 43936
+    },
+    {
+      "index": 57,
+      "id": "advanced_executive:Top 10 cost drivers: employees with highest comb",
+      "section": "advanced_executive",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "top_paid.ranking",
+      "domain": "leave",
+      "tables": [
+        "fact_leave_balance",
+        "mart_employee_current",
+        "vw_leave_summary",
+        "vw_headcount",
+        "mart_horizontal_paysheet_core",
+        "dim_org_unit",
+        "dim_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_payroll_summary",
+        "fct_overtime"
+      ],
+      "elapsed_ms": 68455
+    },
+    {
+      "index": 58,
+      "id": "advanced_executive:Show the top 5 employees by basic salary with na",
+      "section": "advanced_executive",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "top_paid.ranking",
+      "domain": "generic",
+      "tables": [
+        "dim_org_unit",
+        "dim_employee",
+        "mart_horizontal_paysheet_core",
+        "vw_headcount",
+        "mart_employee_current",
+        "payroll_report_column_config",
+        "dim_canonical_pay_item_seed",
+        "mart_processed_payroll_summary"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_payroll_summary"
+      ],
+      "elapsed_ms": 36542
+    },
+    {
+      "index": 59,
+      "id": "advanced_executive:Company-wide KPI table: total active employees, ",
+      "section": "advanced_executive",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "attrition.rate_by_department",
+      "domain": "attrition",
+      "tables": [
+        "vw_headcount",
+        "dim_org_unit",
+        "vw_turnover",
+        "payroll_report_column_config",
+        "mart_horizontal_paysheet_core",
+        "dim_canonical_pay_item_seed",
+        "mart_employee_current",
+        "mart_processed_payroll_summary"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_payroll_summary",
+        "vw_attendance_summary"
+      ],
+      "elapsed_ms": 33400
+    }
+  ]
+}

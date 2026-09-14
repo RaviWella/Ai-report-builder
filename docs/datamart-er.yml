@@ -1,0 +1,442 @@
+# HR datamart ER documentation — single source of truth.
+# When marts change (add/rename/remove models or FKs), update this file and regenerate docs.
+#
+# Regenerate:  python backend/tools/generate_hr_er_pdf.py
+# Validate only: python backend/tools/generate_hr_er_pdf.py --check
+
+version: 1
+
+domains:
+  enterprise:
+  leave:
+  payroll:
+
+# dbt model names (stem of .sql) included per domain (must match files on disk).
+# Conformed dimensions (dim_employee, dim_date) may appear in multiple domains for ER joins.
+domain_models:
+  enterprise:
+    - dim_date
+    - dim_designation
+    - dim_employee
+    - dim_org_unit
+    - dim_shift
+    - fct_daily_attendance
+    - fct_employment_snapshot
+    - fct_lifecycle_event
+    - fct_overtime
+    - fct_salary_change
+    - mart_attendance_monthly_summary
+    - mart_employee_current
+    - mart_headcount_monthly
+    - mart_salary_band_summary
+  leave:
+    - dim_date
+    - dim_employee
+    - dim_leave_approval_level
+    - dim_leave_reason
+    - dim_leave_source
+    - dim_leave_status
+    - dim_leave_type
+    - fact_leave_balance
+    - fct_leave_application
+    - fct_leave_approval
+    - fct_leave_balance_snapshot
+    - fct_leave_daily
+    - fct_leave_planner
+    - fct_lieu_leave_entitlement
+    - fct_maternity_leave
+    - fct_short_leave_usage
+    - mart_department_leave_heatmap
+    - mart_leave_employee_profile
+    - mart_leave_monthly_summary
+  payroll:
+    - dim_bank
+    - dim_bank_branch
+    - dim_canonical_pay_item
+    - dim_employee
+    - dim_payroll_group
+    - dim_payroll_period
+    - fact_payroll
+    - fct_compliance_payroll
+    - fct_noncash_benefit
+    - fct_payroll_process_execution
+    - fct_processed_add_ded
+    - fct_processed_attendance_payroll
+    - fct_processed_loan_deduction
+    - fct_processed_multi_currency_salary
+    - fct_processed_salary
+    - fct_processed_tax
+    - fct_salary_bank_instruction
+    - fct_variable_pay_item
+    - mart_cost_to_company
+    - mart_dynamic_pay_items
+    - mart_horizontal_paysheet_core
+    - mart_horizontal_paysheet_dynamic
+    - mart_payroll_pivot_column_catalog
+    - mart_payroll_reconciliation
+    - mart_processed_payroll_summary
+    - mart_statutory_summary
+
+# Optional overrides (pk, grain, kind). Inferred from model name when omitted.
+model_meta:
+  dim_employee:
+    grain: "SCD2 employee version (conformed); superior_emp_no = immediate manager emp_no"
+    business_key: "source_emp_id, emp_no (+ valid_from for SCD2 version)"
+  dim_bank:
+    business_key: source_bank_id
+  fct_processed_salary:
+    business_key: source_processed_salary_id
+  mart_employee_current:
+    grain: "Current active employee OBT; resolves supervisor via superior_emp_no -> dim_employee.emp_no"
+  dim_date:
+    grain: Calendar
+  dim_org_unit:
+    grain: Organization hierarchy
+  dim_designation:
+    grain: Job title / grade
+  dim_shift:
+    grain: Work shift
+  dim_payroll_period:
+    grain: "Year x month x half"
+  dim_payroll_group:
+    grain: Payroll run group
+  dim_bank:
+    grain: Bank master
+  dim_bank_branch:
+    grain: Bank branch master
+  dim_canonical_pay_item:
+    grain: Normalized pay components
+  fact_leave_balance:
+    pk: id
+    grain: Legacy approved-leave summary over fct_leave_application
+  dim_leave_type:
+    grain: SCD2 leave type (hr_leavetype)
+  dim_leave_status:
+    grain: Normalized workflow status lookup
+  dim_leave_source:
+    grain: Leave module origin lookup
+  dim_leave_reason:
+    grain: Predefined leave purpose lookup
+  fct_leave_application:
+    grain: One row per leave application (all implemented modules)
+  fct_leave_daily:
+    grain: Employee x leave date
+  dim_leave_approval_level:
+    grain: Approval hierarchy lookup
+  fct_leave_balance_snapshot:
+    grain: Employee x leave type x snapshot date
+  fct_leave_approval:
+    grain: One row per approval action
+  fct_short_leave_usage:
+    grain: One row per short leave request
+  fct_lieu_leave_entitlement:
+    grain: Earned lieu entitlement event
+  fct_maternity_leave:
+    grain: One row per maternity leave request
+  fct_leave_planner:
+    grain: One row per planned leave
+  mart_leave_monthly_summary:
+    grain: Month x department x leave type
+  mart_leave_employee_profile:
+    grain: Employee leave behavior profile
+  mart_department_leave_heatmap:
+    grain: Department x calendar date occupancy
+  fact_payroll:
+    kind: VIEW
+    grain: "Legacy view of fct_processed_salary"
+  mart_headcount_monthly:
+    grain: Org x month headcount
+  mart_attendance_monthly_summary:
+    grain: Employee x month attendance
+  mart_salary_band_summary:
+    grain: Band x period summary
+  mart_processed_payroll_summary:
+    grain: Emp x period BI summary
+  mart_horizontal_paysheet_core:
+    grain: Wide paysheet core
+  mart_horizontal_paysheet_dynamic:
+    grain: Pivoted pay items
+  mart_payroll_reconciliation:
+    grain: Group x period reconcile
+  mart_statutory_summary:
+    grain: Statutory rollup
+  mart_cost_to_company:
+    grain: Cost to company (CTC)
+  mart_dynamic_pay_items:
+    grain: Dynamic pay items
+  mart_payroll_pivot_column_catalog:
+    grain: Tenant x pivot_key dynamic paysheet column catalog
+  fct_processed_salary:
+    grain: Emp x period x group
+  fct_processed_add_ded:
+    grain: Add/ded line
+  fct_variable_pay_item:
+    grain: Variable pay line
+  fct_processed_tax:
+    grain: Tax component
+  fct_processed_loan_deduction:
+    pk: processed_loan_sk
+    grain: Loan deduction
+  fct_compliance_payroll:
+    grain: Statutory slice
+  fct_payroll_process_execution:
+    grain: Run metadata
+  fct_processed_attendance_payroll:
+    grain: Attendance in payroll
+  fct_processed_multi_currency_salary:
+    grain: FX salary
+  fct_noncash_benefit:
+    grain: Non-cash benefit
+  fct_salary_bank_instruction:
+    grain: Salary bank payment instruction by employee x period x account
+
+relationships:
+  enterprise:
+    - { from: fct_daily_attendance, to: dim_employee, label: employee_sk }
+    - { from: fct_overtime, to: dim_employee, label: employee_sk }
+    - { from: fct_employment_snapshot, to: dim_employee, label: employee_sk }
+    - { from: fct_employment_snapshot, to: dim_designation, label: designation_sk }
+    - { from: fct_employment_snapshot, to: dim_org_unit, label: org_unit_sk }
+    - { from: fct_lifecycle_event, to: dim_employee, label: employee_sk }
+    - { from: fct_salary_change, to: dim_employee, label: employee_sk }
+    - { from: mart_employee_current, to: dim_employee, label: employee_sk }
+    - { from: mart_employee_current, to: dim_employee, label: superior_emp_no -> emp_no }
+    - { from: mart_headcount_monthly, to: fct_employment_snapshot, label: aggregates }
+    - { from: mart_headcount_monthly, to: dim_date, label: date_sk }
+    - { from: mart_attendance_monthly_summary, to: fct_daily_attendance, label: aggregates }
+    - { from: mart_attendance_monthly_summary, to: dim_employee, label: employee_sk }
+    - { from: mart_salary_band_summary, to: dim_employee, label: employee_sk }
+  leave:
+    - { from: fact_leave_balance, to: dim_employee, label: employee_sk }
+    - { from: fact_leave_balance, to: fct_leave_application, label: legacy over }
+    - { from: fct_leave_application, to: dim_employee, label: employee_sk }
+    - { from: fct_leave_application, to: dim_leave_type, label: leave_type_sk }
+    - { from: fct_leave_application, to: dim_leave_status, label: leave_status_sk }
+    - { from: fct_leave_application, to: dim_leave_source, label: leave_source_sk }
+    - { from: fct_leave_application, to: dim_leave_reason, label: leave_reason_sk }
+    - { from: fct_leave_application, to: dim_date, label: start_date_sk }
+    - { from: fct_leave_daily, to: fct_leave_application, label: leave_application_sk }
+    - { from: fct_leave_daily, to: dim_employee, label: employee_sk }
+    - { from: fct_leave_daily, to: dim_date, label: date_sk }
+    - { from: fct_leave_balance_snapshot, to: dim_employee, label: employee_sk }
+    - { from: fct_leave_balance_snapshot, to: dim_leave_type, label: leave_type_sk }
+    - { from: fct_leave_balance_snapshot, to: dim_date, label: snapshot_date_sk }
+    - { from: fct_leave_approval, to: fct_leave_application, label: leave_application_sk }
+    - { from: fct_leave_approval, to: dim_employee, label: approver employee_sk }
+    - { from: fct_leave_approval, to: dim_leave_approval_level, label: leave_approval_level_sk }
+    - { from: fct_short_leave_usage, to: dim_employee, label: employee_sk }
+    - { from: fct_short_leave_usage, to: dim_leave_type, label: leave_type_sk }
+    - { from: fct_lieu_leave_entitlement, to: dim_employee, label: employee_sk }
+    - { from: fct_maternity_leave, to: dim_employee, label: employee_sk }
+    - { from: fct_maternity_leave, to: dim_leave_type, label: leave_type_sk }
+    - { from: fct_leave_planner, to: dim_employee, label: employee_sk }
+    - { from: fct_leave_planner, to: fct_leave_application, label: actual_leave_application_sk }
+    - { from: mart_leave_monthly_summary, to: fct_leave_daily, label: aggregates }
+    - { from: mart_leave_employee_profile, to: fct_leave_application, label: aggregates }
+    - { from: mart_department_leave_heatmap, to: fct_leave_daily, label: aggregates }
+  payroll:
+    - { from: fct_processed_salary, to: dim_employee, label: employee_sk }
+    - { from: fct_processed_salary, to: dim_payroll_period, label: payroll_period_sk }
+    - { from: fct_processed_salary, to: dim_payroll_group, label: payroll_group_sk }
+    - { from: fct_processed_add_ded, to: dim_employee, label: employee_sk }
+    - { from: fct_processed_add_ded, to: dim_payroll_period, label: payroll_period_sk }
+    - { from: fct_processed_add_ded, to: dim_payroll_group, label: payroll_group_sk }
+    - { from: fct_processed_add_ded, to: dim_canonical_pay_item, label: canonical_pay_item_sk }
+    - { from: fct_variable_pay_item, to: dim_employee, label: employee_sk }
+    - { from: fct_variable_pay_item, to: dim_payroll_period, label: payroll_period_sk }
+    - { from: fct_variable_pay_item, to: dim_canonical_pay_item, label: canonical_pay_item_sk }
+    - { from: fct_processed_tax, to: dim_employee, label: employee_sk }
+    - { from: fct_processed_tax, to: dim_payroll_period, label: payroll_period_sk }
+    - { from: fct_processed_loan_deduction, to: dim_employee, label: employee_sk }
+    - { from: fct_processed_loan_deduction, to: dim_payroll_period, label: payroll_period_sk }
+    - { from: fct_compliance_payroll, to: dim_employee, label: employee_sk }
+    - { from: fct_compliance_payroll, to: dim_payroll_period, label: payroll_period_sk }
+    - { from: fct_salary_bank_instruction, to: dim_employee, label: employee_sk }
+    - { from: fct_salary_bank_instruction, to: dim_payroll_period, label: payroll_period_sk }
+    - { from: fct_salary_bank_instruction, to: dim_payroll_group, label: payroll_group_sk }
+    - { from: fct_salary_bank_instruction, to: dim_bank, label: bank_sk }
+    - { from: fct_salary_bank_instruction, to: dim_bank_branch, label: bank_branch_sk }
+    - { from: fct_payroll_process_execution, to: dim_payroll_period, label: payroll_period_sk }
+    - { from: fct_payroll_process_execution, to: dim_payroll_group, label: payroll_group_sk }
+    - { from: mart_processed_payroll_summary, to: fct_processed_salary, label: rolls up }
+    - { from: mart_horizontal_paysheet_core, to: fct_processed_salary, label: denormalizes }
+    - { from: mart_horizontal_paysheet_dynamic, to: mart_horizontal_paysheet_core, label: extends }
+    - { from: mart_horizontal_paysheet_dynamic, to: fct_processed_add_ded, label: pivot }
+    - { from: mart_horizontal_paysheet_dynamic, to: fct_variable_pay_item, label: pivot }
+    - { from: mart_horizontal_paysheet_dynamic, to: mart_payroll_pivot_column_catalog, label: column catalog }
+    - { from: mart_payroll_reconciliation, to: fct_processed_salary, label: reconciles }
+    - { from: mart_statutory_summary, to: fct_compliance_payroll, label: aggregates }
+    - { from: mart_cost_to_company, to: fct_processed_salary, label: extends }
+    - { from: mart_cost_to_company, to: fct_noncash_benefit, label: extends }
+    - { from: mart_dynamic_pay_items, to: fct_variable_pay_item, label: aggregates }
+    - { from: mart_dynamic_pay_items, to: fct_processed_add_ded, label: aggregates }
+    - { from: fact_payroll, to: fct_processed_salary, label: view of }
+
+semantic_views:
+  - { name: vw_payroll_summary, reads: "mart_processed_payroll_summary, payroll facts" }
+  - { name: vw_headcount, reads: "mart_headcount_monthly, dim_employee" }
+  - { name: vw_employment_monthly, reads: fct_employment_snapshot }
+  - { name: vw_attendance_summary, reads: mart_attendance_monthly_summary }
+  - { name: vw_salary_bands, reads: mart_salary_band_summary }
+  - { name: vw_lifecycle_summary, reads: fct_lifecycle_event }
+  - { name: vw_turnover, reads: "lifecycle / employment facts" }
+  - { name: vw_leave_summary, reads: "fact_leave_balance, fct_leave_application, dim_employee" }
+  - { name: vw_current_leave_balance, reads: "fct_leave_balance_snapshot, dim_employee, dim_leave_type" }
+  - { name: vw_employee_leave_history, reads: "fct_leave_application, dim_employee, dim_leave_type" }
+  - { name: vw_pending_leave_approvals, reads: "fct_leave_approval, fct_leave_application, dim_employee" }
+  - { name: vw_leave_liability, reads: "fct_leave_balance_snapshot, dim_employee, dim_leave_type" }
+  - { name: vw_leave_utilization, reads: "mart_leave_monthly_summary, fct_leave_balance_snapshot" }
+  - { name: vw_performance_summary, reads: performance staging }
+
+# Governance metadata (not dbt models; provisioned by warehouse.py + ETL sync).
+control_plane:
+  schema: hr_control
+  objects:
+    - name: data_dictionary_object
+      kind: TABLE
+      pk: object_id
+      grain: One row per warehouse table/view per tenant
+    - name: data_dictionary_field
+      kind: TABLE
+      pk: field_id
+      grain: One row per column per object
+  relationships:
+    - { from: data_dictionary_field, to: data_dictionary_object, label: object_id FK }
+  semantic_exposure:
+    - name: vw_data_dictionary
+      schema: hr_semantic
+      reads: "data_dictionary_object JOIN data_dictionary_field (flat field catalog)"
+
+# dbt paths scanned by --check (relative to repo root)
+dbt_discovery:
+  employment_marts: backend/dbt_project/hr_mart/models/marts/employment
+  payroll_marts: backend/dbt_project/hr_mart/models/marts/payroll
+  leave_marts: backend/dbt_project/hr_mart/models/marts/leave
+  legacy_marts: backend/dbt_project/hr_mart/models/marts
+  semantic_views: backend/dbt_project/hr_mart/models/semantic
+
+# Bronze staging feeds (hr_raw) — not ER entities; documented for lineage only.
+bronze_lineage:
+  dim_employee:
+    - stg_employees
+    - stg_company_hierarchy_individual
+    - stg_departments
+  dim_leave_type:
+    - stg_leave_types
+  dim_leave_reason:
+    - stg_leave_reason
+  fct_leave_application:
+    - stg_leave_requests
+  fct_leave_daily:
+    - stg_leave_application_dates
+    - stg_leave_requests
+  fct_leave_balance_snapshot:
+    - stg_leave_balance
+    - stg_leave_entitlement
+  fct_leave_approval:
+    - stg_leave_approvals
+    - stg_leave_requests
+  fct_short_leave_usage:
+    - stg_short_leave
+  fct_lieu_leave_entitlement:
+    - stg_lieu_leave_entitlement
+  fct_maternity_leave:
+    - stg_maternity_leave
+  fct_leave_planner:
+    - stg_leave_planner
+  fact_leave_balance:
+    - fct_leave_application
+  fct_salary_bank_instruction:
+    - stg_payroll_salary_retrieve
+    - stg_payroll_salary_bank_data
+    - stg_payroll_bank
+    - stg_payroll_bank_branch
+
+# ---------------------------------------------------------------------------
+# Future leave modules (not yet implemented — excluded from --check)
+# Full design: docs/leave-intelligence-mart-design.md
+# ---------------------------------------------------------------------------
+planned_leave_modules:
+  sources:
+    - hr_edulv_application
+    - hr_day_off
+  note: >
+    Phases 0-4 implemented in domain leave (see leave_implementation_phases).
+    fact_leave_balance retained as legacy bridge; prefer fct_leave_application.
+
+leave_bronze_lineage:
+  phase_1_cdc:
+    - hr_leaveapplication
+    - hr_leaveapplication_dates
+    - hr_leavetype
+    - prl_leaveentitle
+    - hr_leave_balance
+  phase_2_modules:
+    - hr_short_leave
+    - hr_lieu_leave
+    - hr_leave_maternity
+    - hr_edulv_application
+    - hr_day_off
+  phase_3_workflow:
+    - hr_leaveapplication_superiors
+    - hr_lieu_leaveapplication_superiors
+    - hr_leave_maternity_superiors
+    - hr_edulv_superior_approval
+  phase_3_planner_entitlement:
+    - hr_leave_planner
+    - hr_leave_planner_dates
+    - lieu_leave_entitlement_data
+    - prl_maternity_leaveentitle
+
+leave_implementation_phases:
+  phase_0:
+    status: implemented
+    deliverables:
+      - stg_leave_types
+      - stg_leave_requests
+      - fact_leave_balance
+      - vw_leave_summary
+  phase_1:
+    status: implemented
+    deliverables:
+      - dim_leave_type
+      - dim_leave_status
+      - dim_leave_source
+      - fct_leave_application
+      - fct_leave_daily
+      - stg_leave_application_dates
+  phase_2:
+    status: implemented
+    deliverables:
+      - dim_leave_approval_level
+      - fct_leave_balance_snapshot
+      - fct_leave_approval
+      - stg_leave_balance
+      - stg_leave_entitlement
+      - stg_leave_approvals
+      - vw_current_leave_balance
+      - vw_employee_leave_history
+      - vw_pending_leave_approvals
+  phase_3:
+    status: implemented
+    deliverables:
+      - stg_short_leave
+      - stg_lieu_leave
+      - stg_lieu_leave_entitlement
+      - stg_maternity_leave
+      - stg_leave_planner
+      - fct_lieu_leave_entitlement
+      - fct_short_leave_usage
+      - fct_maternity_leave
+      - fct_leave_planner
+      - unified fct_leave_application modules
+  phase_4:
+    status: implemented
+    deliverables:
+      - dim_leave_reason
+      - stg_leave_reason
+      - mart_leave_monthly_summary
+      - mart_leave_employee_profile
+      - mart_department_leave_heatmap
+      - vw_leave_liability
+      - vw_leave_utilization

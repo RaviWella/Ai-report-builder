@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment
+.env
+.env.docker
+.env.local
+!.env.example
+
+# DataHub ingest recipe generated from backend/.env (scripts/refresh_datamart_metadata.*)
+datahub_ingestion.generated.yml
+
+# Node
+node_modules/
+dist/
+.cache/
+*.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local / accidental artifacts
+backend/3.0.0
+frontend/test-results/
+playwright-report/
+blob-report/
+
+# Docker
+*.tar
+
+# dbt
+target/
+dbt_packages/
+logs/
+
+# Uploads
+uploads/

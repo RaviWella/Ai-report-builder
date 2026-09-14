@@ -1,0 +1,80 @@
+﻿tenant=demo_tenant tables=57
+
+data_access_rules
+database_connections
+dim_bank
+dim_bank_branch
+dim_canonical_pay_item
+dim_canonical_pay_item_seed
+dim_date
+dim_designation
+dim_employee
+dim_org_unit
+dim_payroll_group
+dim_payroll_period
+dim_shift
+fact_attendance
+fact_leave_balance
+fact_payroll
+fct_compliance_payroll
+fct_daily_attendance
+fct_employment_snapshot
+fct_lifecycle_event
+fct_noncash_benefit
+fct_overtime
+fct_payroll_process_execution
+fct_processed_add_ded
+fct_processed_attendance_payroll
+fct_processed_loan_deduction
+fct_processed_multi_currency_salary
+fct_processed_salary
+fct_processed_tax
+fct_salary_bank_instruction
+fct_salary_change
+fct_variable_pay_item
+mart_attendance_monthly_summary
+mart_cost_to_company
+mart_dynamic_pay_items
+mart_employee_current
+mart_headcount_monthly
+mart_horizontal_paysheet_core
+mart_horizontal_paysheet_dynamic
+mart_payroll_pivot_column_catalog
+mart_payroll_reconciliation
+mart_processed_payroll_summary
+mart_salary_band_summary
+mart_statutory_summary
+payroll_report_column_config
+snap_designation
+snap_employee
+snap_shift
+vw_attendance_summary
+vw_employment_monthly
+vw_headcount
+vw_leave_summary
+vw_lifecycle_summary
+vw_payroll_summary
+vw_performance_summary
+vw_salary_bands
+vw_turnover
+
+--- leave / bank check ---
+fact_leave_transaction: NOT IN WAREHOUSE
+dim_leave_type: NOT IN WAREHOUSE
+python : Traceback (most recent call last):
+At C:\Users\Lap.lk\AppData\Local\Temp\ps-script-952ba544-26f2-4444-8904-391b67ffc1de.ps1:90 char:72
++ ... d"; $env:PYTHONPATH="."; python tools/_list_wh_tables.py 2>&1 | Out-F ...
++                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\MintHRM Repo\mint-analytics-v1.5\backend\tools\_list_wh_tables.py", line 27, in <module>
+    run_with_datamart_context("demo_tenant", _run)
+  File "C:\MintHRM Repo\mint-analytics-v1.5\backend\app\services\ai_services\datamart\runtime_context.py", line 98, in 
+run_with_datamart_context
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\MintHRM Repo\mint-analytics-v1.5\backend\tools\_list_wh_tables.py", line 21, in _run
+    print(f"{match[0]} ({len(cols)} cols): {', '.join(cols[:20])}...")
+                                                      ~~~~^^^^^
+TypeError: unhashable type: 'slice'

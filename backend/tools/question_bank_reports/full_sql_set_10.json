@@ -1,0 +1,157 @@
+{
+  "summary": {
+    "total": 6,
+    "with_sql": 6,
+    "executed": true,
+    "exec_ok": 6,
+    "result_ok": 6,
+    "passed": 6,
+    "failed": 0
+  },
+  "results": [
+    {
+      "index": 54,
+      "section": "advanced_recruitment",
+      "question": "Prepare a recruitment pipeline report showing candidates sourced through LinkedIn and employee referrals, including candidate name, contact email, recruitment source, appointment date, expected joining date, and assigned branch. Include only candidates who are expected to join within the next 60 days.",
+      "tier": "B",
+      "sql_source": "verified:recruitment_pipeline_linkedin_referral",
+      "sql": "WITH hire_pipeline AS (\n  SELECT\n    e.emp_fullname AS candidate_name,\n    d.email AS contact_email,\n    CASE\n      WHEN COALESCE(e.employee_category, '') ILIKE '%referral%' THEN 'Employee Referral'\n      WHEN COALESCE(e.employee_category, '') ILIKE '%linkedin%' THEN 'LinkedIn'\n      ELSE COALESCE(NULLIF(TRIM(e.employee_category), ''), NULLIF(TRIM(e.employment_type), ''), 'Other')\n    END AS recruitment_source,\n    le.approved_date AS appointment_date,\n    COALESCE(e.join_date, le.effective_date) AS expected_joining_date,\n    e.location_name AS assigned_branch\n  FROM hr.fct_lifecycle_event le\n  JOIN hr.mart_employee_current e ON e.employee_sk = le.employee_sk\n  LEFT JOIN hr.dim_employee d ON d.employee_sk = e.employee_sk AND d.is_current IS TRUE\n  WHERE le.event_name ILIKE '%join%' OR le.event_category ILIKE '%hire%'\n)\nSELECT\n  hp.candidate_name,\n  hp.contact_email,\n  hp.recruitment_source,\n  hp.appointment_date,\n  hp.expected_joining_date,\n  hp.assigned_branch\nFROM hire_pipeline hp\nWHERE (hp.recruitment_source ILIKE '%linkedin%' OR hp.recruitment_source ILIKE '%referral%')\n  AND hp.expected_joining_date >= CURRENT_DATE - INTERVAL '60 days'\n  AND hp.expected_joining_date < CURRENT_DATE + INTERVAL '60 days'\nORDER BY hp.expected_joining_date\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "candidate_name",
+        "contact_email",
+        "recruitment_source",
+        "appointment_date",
+        "expected_joining_date",
+        "assigned_branch"
+      ],
+      "row_count": 0,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 16,
+      "errors": []
+    },
+    {
+      "index": 55,
+      "section": "advanced_recruitment",
+      "question": "List all candidates in the hiring pipeline with recruitment source, current stage, and expected joining date for the next 90 days, grouped by branch.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_recruitment_pipeline_90d",
+      "sql": "WITH hire_pipeline AS (\n  SELECT\n    e.emp_fullname AS candidate_name,\n    CASE\n      WHEN COALESCE(e.employee_category, '') ILIKE '%referral%' THEN 'Employee Referral'\n      WHEN COALESCE(e.employee_category, '') ILIKE '%linkedin%' THEN 'LinkedIn'\n      ELSE COALESCE(NULLIF(TRIM(e.employee_category), ''), 'Other')\n    END AS recruitment_source,\n    le.event_name AS current_stage,\n    COALESCE(e.join_date, le.effective_date) AS expected_joining_date,\n    e.location_name AS assigned_branch\n  FROM hr.fct_lifecycle_event le\n  JOIN hr.mart_employee_current e ON e.employee_sk = le.employee_sk\n  WHERE le.event_name ILIKE '%join%' OR le.event_category ILIKE '%hire%'\n)\nSELECT\n  hp.assigned_branch AS branch,\n  hp.recruitment_source,\n  hp.current_stage,\n  hp.expected_joining_date,\n  COUNT(*) AS candidate_count\nFROM hire_pipeline hp\nWHERE hp.expected_joining_date >= CURRENT_DATE - INTERVAL '90 days'\n  AND hp.expected_joining_date < CURRENT_DATE + INTERVAL '90 days'\nGROUP BY hp.assigned_branch, hp.recruitment_source, hp.current_stage, hp.expected_joining_date\nORDER BY 1, 4\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "branch",
+        "recruitment_source",
+        "current_stage",
+        "expected_joining_date",
+        "candidate_count"
+      ],
+      "row_count": 0,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 15,
+      "errors": []
+    },
+    {
+      "index": 56,
+      "section": "advanced_recruitment",
+      "question": "Which recruitment sources (LinkedIn vs referrals vs other) produced the most candidates appointed in the last quarter?",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_recruitment_29",
+      "sql": "WITH hire_pipeline AS (\n  SELECT\n    CASE\n      WHEN COALESCE(e.employee_category, '') ILIKE '%referral%' THEN 'Employee Referral'\n      WHEN COALESCE(e.employee_category, '') ILIKE '%linkedin%' THEN 'LinkedIn'\n      ELSE COALESCE(NULLIF(TRIM(e.employee_category), ''), 'Other')\n    END AS recruitment_source,\n    le.approved_date AS appointment_date\n  FROM hr.fct_lifecycle_event le\n  JOIN hr.mart_employee_current e ON e.employee_sk = le.employee_sk\n  WHERE le.event_name ILIKE '%join%' OR le.event_category ILIKE '%hire%'\n)\nSELECT\n  hp.recruitment_source,\n  COUNT(*) AS candidate_count\nFROM hire_pipeline hp\nWHERE hp.appointment_date >= date_trunc('quarter', CURRENT_DATE) - INTERVAL '3 months'\n  AND hp.appointment_date < date_trunc('quarter', CURRENT_DATE)\nGROUP BY hp.recruitment_source\nORDER BY candidate_count DESC\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "recruitment_source",
+        "candidate_count"
+      ],
+      "row_count": 0,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 2,
+      "errors": []
+    },
+    {
+      "index": 57,
+      "section": "advanced_recruitment",
+      "question": "Show average time-to-hire in days by recruitment source for candidates who joined in the last six months, using appointment date and joining date from the pipeline fact.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_recruitment_time_to_hire",
+      "sql": "WITH hire_pipeline AS (\n  SELECT\n    CASE\n      WHEN COALESCE(e.employee_category, '') ILIKE '%referral%' THEN 'Employee Referral'\n      WHEN COALESCE(e.employee_category, '') ILIKE '%linkedin%' THEN 'LinkedIn'\n      ELSE COALESCE(NULLIF(TRIM(e.employee_category), ''), 'Other')\n    END AS recruitment_source,\n    le.approved_date AS appointment_date,\n    COALESCE(e.join_date, le.effective_date) AS expected_joining_date\n  FROM hr.fct_lifecycle_event le\n  JOIN hr.mart_employee_current e ON e.employee_sk = le.employee_sk\n  WHERE le.event_name ILIKE '%join%' OR le.event_category ILIKE '%hire%'\n)\nSELECT\n  hp.recruitment_source,\n  ROUND(AVG((hp.expected_joining_date::date - COALESCE(hp.appointment_date, hp.expected_joining_date)::date))::numeric, 1) AS avg_time_to_hire_days\nFROM hire_pipeline hp\nWHERE hp.expected_joining_date >= CURRENT_DATE - INTERVAL '6 months'\nGROUP BY hp.recruitment_source\nORDER BY avg_time_to_hire_days DESC\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "recruitment_source",
+        "avg_time_to_hire_days"
+      ],
+      "row_count": 0,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 2,
+      "errors": []
+    },
+    {
+      "index": 58,
+      "section": "advanced_recruitment",
+      "question": "List open requisitions with count of active candidates in the pipeline, recruitment source mix, and assigned branch from recruitment pipeline and job dimensions.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_recruitment_requisitions",
+      "sql": "WITH hire_pipeline AS (\n  SELECT\n    e.designation,\n    e.designation_department,\n    e.location_name AS assigned_branch,\n    CASE\n      WHEN COALESCE(e.employee_category, '') ILIKE '%referral%' THEN 'Employee Referral'\n      WHEN COALESCE(e.employee_category, '') ILIKE '%linkedin%' THEN 'LinkedIn'\n      ELSE COALESCE(NULLIF(TRIM(e.employee_category), ''), 'Other')\n    END AS recruitment_source\n  FROM hr.fct_lifecycle_event le\n  JOIN hr.mart_employee_current e ON e.employee_sk = le.employee_sk\n  WHERE le.event_name ILIKE '%join%' OR le.event_category ILIKE '%hire%'\n)\nSELECT\n  hp.designation AS requisition_title,\n  hp.designation_department AS department,\n  COUNT(*) AS active_candidates,\n  STRING_AGG(DISTINCT hp.recruitment_source, ', ' ORDER BY hp.recruitment_source) AS recruitment_source_mix,\n  hp.assigned_branch AS branch\nFROM hire_pipeline hp\nGROUP BY hp.designation, hp.designation_department, hp.assigned_branch\nORDER BY active_candidates DESC\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "requisition_title",
+        "department",
+        "active_candidates",
+        "recruitment_source_mix",
+        "branch"
+      ],
+      "row_count": 5,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 15,
+      "errors": []
+    },
+    {
+      "index": 59,
+      "section": "advanced_recruitment",
+      "question": "For candidates with expected joining date in the next 30 days, show candidate name, recruitment source, appointment date, and branch sorted by joining date.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_recruitment_joining_30d",
+      "sql": "WITH hire_pipeline AS (\n  SELECT\n    e.emp_fullname AS candidate_name,\n    CASE\n      WHEN COALESCE(e.employee_category, '') ILIKE '%referral%' THEN 'Employee Referral'\n      WHEN COALESCE(e.employee_category, '') ILIKE '%linkedin%' THEN 'LinkedIn'\n      ELSE COALESCE(NULLIF(TRIM(e.employee_category), ''), 'Other')\n    END AS recruitment_source,\n    le.approved_date AS appointment_date,\n    COALESCE(e.join_date, le.effective_date) AS expected_joining_date,\n    e.location_name AS assigned_branch\n  FROM hr.fct_lifecycle_event le\n  JOIN hr.mart_employee_current e ON e.employee_sk = le.employee_sk\n  WHERE le.event_name ILIKE '%join%' OR le.event_category ILIKE '%hire%'\n)\nSELECT\n  hp.candidate_name,\n  hp.recruitment_source,\n  hp.appointment_date,\n  hp.assigned_branch AS branch\nFROM hire_pipeline hp\nWHERE hp.expected_joining_date >= CURRENT_DATE - INTERVAL '30 days'\n  AND hp.expected_joining_date < CURRENT_DATE + INTERVAL '30 days'\nORDER BY hp.expected_joining_date\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "candidate_name",
+        "recruitment_source",
+        "appointment_date",
+        "branch"
+      ],
+      "row_count": 0,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 14,
+      "errors": []
+    }
+  ]
+}

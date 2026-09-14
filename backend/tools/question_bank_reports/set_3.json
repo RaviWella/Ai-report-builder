@@ -1,0 +1,172 @@
+{
+  "tenant": "demo_tenant",
+  "set": 3,
+  "set_count": 10,
+  "set_size": 6,
+  "index_range": [
+    12,
+    17
+  ],
+  "total": 6,
+  "passed": 6,
+  "failed": 0,
+  "elapsed_seconds": 256.4,
+  "results": [
+    {
+      "index": 12,
+      "id": "advanced_attendance:For this month, rank departments by late arrival",
+      "section": "advanced_attendance",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "attendance",
+      "tables": [
+        "dim_org_unit",
+        "vw_attendance_summary",
+        "dim_employee",
+        "fact_attendance",
+        "mart_horizontal_paysheet_core",
+        "payroll_report_column_config",
+        "dim_canonical_pay_item_seed",
+        "vw_headcount"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "mart_attendance_monthly_summary",
+        "mart_employee_current"
+      ],
+      "elapsed_ms": 56815
+    },
+    {
+      "index": 13,
+      "id": "advanced_attendance:List employees with absent days greater than pre",
+      "section": "advanced_attendance",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "dim_employee",
+        "mart_employee_current",
+        "fct_overtime",
+        "snap_designation",
+        "mart_cost_to_company",
+        "vw_attendance_summary",
+        "mart_headcount_monthly"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fact_attendance"
+      ],
+      "elapsed_ms": 49841
+    },
+    {
+      "index": 14,
+      "id": "advanced_attendance:Show attendance summary for this month with pres",
+      "section": "advanced_attendance",
+      "ok": true,
+      "errors": [],
+      "template": "attendance.monthly_summary",
+      "spec_template": "attendance.monthly_summary",
+      "domain": "attendance",
+      "tables": [
+        "vw_attendance_summary",
+        "fact_attendance",
+        "mart_horizontal_paysheet_core",
+        "vw_headcount",
+        "mart_employee_current",
+        "mart_processed_payroll_summary",
+        "payroll_report_column_config",
+        "dim_employee"
+      ],
+      "sql_source": "attendance_summary_template",
+      "has_sql": true,
+      "missing_expect_tables": [
+        "mart_attendance_monthly_summary"
+      ],
+      "elapsed_ms": 43313
+    },
+    {
+      "index": 15,
+      "id": "advanced_attendance:Compare total overtime hours versus total presen",
+      "section": "advanced_attendance",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "attendance.monthly_summary",
+      "domain": "attendance",
+      "tables": [
+        "dim_employee",
+        "fact_attendance",
+        "vw_attendance_summary",
+        "dim_org_unit",
+        "mart_employee_current",
+        "mart_horizontal_paysheet_core",
+        "vw_headcount",
+        "payroll_report_column_config"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fct_overtime",
+        "mart_attendance_monthly_summary"
+      ],
+      "elapsed_ms": 39101
+    },
+    {
+      "index": 16,
+      "id": "advanced_attendance:Which employees have more than 20 late events ye",
+      "section": "advanced_attendance",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "mart_headcount_monthly",
+        "mart_employee_current",
+        "fact_attendance",
+        "vw_lifecycle_summary",
+        "dim_org_unit",
+        "dim_employee",
+        "vw_attendance_summary",
+        "vw_headcount"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [],
+      "elapsed_ms": 41137
+    },
+    {
+      "index": 17,
+      "id": "advanced_attendance:Show weekly trend of absent days and late events",
+      "section": "advanced_attendance",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "attendance.monthly_summary",
+      "domain": "attendance",
+      "tables": [
+        "vw_attendance_summary",
+        "dim_employee",
+        "mart_attendance_monthly_summary",
+        "dim_shift",
+        "mart_employee_current",
+        "vw_headcount",
+        "fact_attendance",
+        "fct_daily_attendance",
+        "dim_designation",
+        "dim_org_unit"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [],
+      "elapsed_ms": 20029
+    }
+  ]
+}

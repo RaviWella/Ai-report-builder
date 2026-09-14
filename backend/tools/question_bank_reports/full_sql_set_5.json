@@ -1,0 +1,156 @@
+{
+  "summary": {
+    "total": 6,
+    "with_sql": 6,
+    "executed": true,
+    "exec_ok": 6,
+    "result_ok": 6,
+    "passed": 6,
+    "failed": 0
+  },
+  "results": [
+    {
+      "index": 24,
+      "section": "advanced_attrition",
+      "question": "Which departments have the highest attrition rate over the last twelve months? Rank departments by computed attrition rate using turnover and headcount views, and show separations, average headcount, and rate percentage.",
+      "tier": "A",
+      "sql_source": "attrition_rate_template",
+      "sql": "WITH sep_by_dim AS (\n    SELECT\n        t.department_id,\n        COUNT(DISTINCT t.employee_id) AS separation_count\n    FROM hr_semantic.vw_turnover t\n    WHERE t.employee_id IS NOT NULL\n      AND t.department_id IS NOT NULL\n    GROUP BY t.department_id\n),\nhc_by_dim AS (\n    SELECT\n        h.department_id,\n        COUNT(DISTINCT h.employee_id) AS active_headcount\n    FROM hr_semantic.vw_headcount h\n    WHERE h.is_active IS TRUE\n      AND h.employee_id IS NOT NULL\n      AND h.department_id IS NOT NULL\n    GROUP BY h.department_id\n),\ndept_label AS (\n    SELECT DISTINCT\n        m.emp_section_id AS department_id,\n        m.designation_department AS department\n    FROM hr.mart_employee_current m\n    WHERE m.emp_section_id IS NOT NULL\n      AND m.designation_department IS NOT NULL\n)\nSELECT\n    COALESCE(d.department, 'Dept ' || s.department_id::text) AS department,\n    s.separation_count,\n    hc.active_headcount,\n    ROUND(100.0 * s.separation_count / NULLIF(hc.active_headcount, 0), 2) AS attrition_rate_pct\nFROM sep_by_dim s\nINNER JOIN hc_by_dim hc ON hc.department_id = s.department_id\nLEFT JOIN dept_label d ON d.department_id = s.department_id\nORDER BY attrition_rate_pct DESC NULLS LAST\nLIMIT 50;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "department",
+        "separation_count",
+        "active_headcount",
+        "attrition_rate_pct"
+      ],
+      "row_count": 9,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 4,
+      "errors": []
+    },
+    {
+      "index": 25,
+      "section": "advanced_attrition",
+      "question": "Compare monthly separations versus hires for the last twelve months using lifecycle summary and employment monthly views.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_attrition_6",
+      "sql": "SELECT\n  date_trunc('month', ls.effective_date::date) AS month,\n  COUNT(*) FILTER (WHERE ls.event_category ILIKE '%separ%' OR ls.event_name ILIKE '%separ%') AS separations,\n  COUNT(*) FILTER (WHERE ls.event_category ILIKE '%hire%' OR ls.event_name ILIKE '%hire%') AS hires\nFROM hr_semantic.vw_lifecycle_summary ls\nWHERE ls.effective_date >= CURRENT_DATE - INTERVAL '12 months'\nGROUP BY 1\nORDER BY 1\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "month",
+        "separations",
+        "hires"
+      ],
+      "row_count": 6,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 3,
+      "errors": []
+    },
+    {
+      "index": 26,
+      "section": "advanced_attrition",
+      "question": "List branches where attrition rate exceeds company average by more than 5 percentage points, using turnover and headcount by branch.",
+      "tier": "A",
+      "sql_source": "attrition_rate_template",
+      "sql": "WITH sep_by_dim AS (\n    SELECT\n        t.branch_id,\n        COUNT(DISTINCT t.employee_id) AS separation_count\n    FROM hr_semantic.vw_turnover t\n    WHERE t.employee_id IS NOT NULL\n      AND t.branch_id IS NOT NULL\n    GROUP BY t.branch_id\n),\nhc_by_dim AS (\n    SELECT\n        h.branch_id,\n        COUNT(DISTINCT h.employee_id) AS active_headcount\n    FROM hr_semantic.vw_headcount h\n    WHERE h.is_active IS TRUE\n      AND h.employee_id IS NOT NULL\n      AND h.branch_id IS NOT NULL\n    GROUP BY h.branch_id\n),\nbranch_label AS (\n    SELECT DISTINCT\n        m.branch_id,\n        m.location_name AS branch\n    FROM hr.mart_employee_current m\n    WHERE m.branch_id IS NOT NULL\n      AND m.location_name IS NOT NULL\n)\nSELECT\n    COALESCE(b.branch, 'Branch ' || s.branch_id::text) AS branch,\n    s.separation_count,\n    hc.active_headcount,\n    ROUND(100.0 * s.separation_count / NULLIF(hc.active_headcount, 0), 2) AS attrition_rate_pct\nFROM sep_by_dim s\nINNER JOIN hc_by_dim hc ON hc.branch_id = s.branch_id\nLEFT JOIN branch_label b ON b.branch_id = s.branch_id\nORDER BY attrition_rate_pct DESC NULLS LAST\nLIMIT 50;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "branch",
+        "separation_count",
+        "active_headcount",
+        "attrition_rate_pct"
+      ],
+      "row_count": 3,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": -1,
+      "errors": []
+    },
+    {
+      "index": 27,
+      "section": "advanced_attrition",
+      "question": "Show separation events by event type and reason for the current year with counts and percentage of total separations.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_attrition_7",
+      "sql": "SELECT\n  le.event_category AS event_type,\n  le.reason AS event_reason,\n  COUNT(*) AS event_count\nFROM hr.fct_lifecycle_event le\nWHERE date_trunc('year', le.effective_date) = date_trunc('year', CURRENT_DATE)\n  AND (le.event_category ILIKE '%separ%' OR le.event_name ILIKE '%separ%')\nGROUP BY 1, 2\nORDER BY event_count DESC\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "event_type",
+        "event_reason",
+        "event_count"
+      ],
+      "row_count": 0,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 3,
+      "errors": []
+    },
+    {
+      "index": 28,
+      "section": "advanced_attrition",
+      "question": "For departments with at least 20 employees, rank by attrition rate and include department name, starting headcount, separations, and attrition rate percent.",
+      "tier": "A",
+      "sql_source": "attrition_rate_template",
+      "sql": "WITH sep_by_dim AS (\n    SELECT\n        t.department_id,\n        COUNT(DISTINCT t.employee_id) AS separation_count\n    FROM hr_semantic.vw_turnover t\n    WHERE t.employee_id IS NOT NULL\n      AND t.department_id IS NOT NULL\n    GROUP BY t.department_id\n),\nhc_by_dim AS (\n    SELECT\n        h.department_id,\n        COUNT(DISTINCT h.employee_id) AS active_headcount\n    FROM hr_semantic.vw_headcount h\n    WHERE h.is_active IS TRUE\n      AND h.employee_id IS NOT NULL\n      AND h.department_id IS NOT NULL\n    GROUP BY h.department_id\n),\ndept_label AS (\n    SELECT DISTINCT\n        m.emp_section_id AS department_id,\n        m.designation_department AS department\n    FROM hr.mart_employee_current m\n    WHERE m.emp_section_id IS NOT NULL\n      AND m.designation_department IS NOT NULL\n)\nSELECT\n    COALESCE(d.department, 'Dept ' || s.department_id::text) AS department,\n    s.separation_count,\n    hc.active_headcount,\n    ROUND(100.0 * s.separation_count / NULLIF(hc.active_headcount, 0), 2) AS attrition_rate_pct\nFROM sep_by_dim s\nINNER JOIN hc_by_dim hc ON hc.department_id = s.department_id\nLEFT JOIN dept_label d ON d.department_id = s.department_id\nORDER BY attrition_rate_pct DESC NULLS LAST\nLIMIT 50;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "department",
+        "separation_count",
+        "active_headcount",
+        "attrition_rate_pct"
+      ],
+      "row_count": 9,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 14,
+      "errors": []
+    },
+    {
+      "index": 29,
+      "section": "advanced_attrition",
+      "question": "Identify employees who separated in the last quarter and had tenure under 12 months, with name, branch, hire date, separation date, and event type.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_attrition_8",
+      "sql": "SELECT\n  e.emp_fullname AS employee_name,\n  e.location_name AS branch,\n  e.join_date AS hire_date,\n  le.effective_date AS separation_date,\n  le.event_category AS event_type\nFROM hr.fct_lifecycle_event le\nJOIN hr.mart_employee_current e ON e.employee_sk = le.employee_sk\nWHERE (le.event_category ILIKE '%separ%' OR le.event_name ILIKE '%separ%')\n  AND le.effective_date >= date_trunc('quarter', CURRENT_DATE) - INTERVAL '3 months'\n  AND le.effective_date < date_trunc('quarter', CURRENT_DATE)\n  AND (le.effective_date::date - e.join_date::date) < 365\nORDER BY le.effective_date DESC\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "employee_name",
+        "branch",
+        "hire_date",
+        "separation_date",
+        "event_type"
+      ],
+      "row_count": 0,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 15,
+      "errors": []
+    }
+  ]
+}

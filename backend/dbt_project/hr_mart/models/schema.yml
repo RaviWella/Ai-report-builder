@@ -1,0 +1,191 @@
+version: 2
+
+sources:
+  - name: hr_raw
+    schema: "{{ var('raw_schema', target.name ~ '_hr_raw') }}"
+    tables:
+      - name: stg_employees
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: employee_code
+            tests: [not_null]
+          - name: employment_status
+            tests: [not_null]
+      - name: stg_departments
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_company_hierarchy_individual
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: ref_emp_id
+            tests: [not_null]
+      - name: stg_designations
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_branches
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_attendance
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: employee_id
+            tests: [not_null]
+      - name: stg_leave_requests
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_leave_types
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_leave_reason
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_leave_application_dates
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: leave_application_id
+            tests: [not_null]
+      - name: stg_leave_balance
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: employee_id
+            tests: [not_null]
+      - name: stg_leave_entitlement
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_leave_approvals
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: leave_application_id
+            tests: [not_null]
+      - name: stg_short_leave
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_lieu_leave
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_lieu_leave_entitlement
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_maternity_leave
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_leave_planner
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: hr_payroll_groups
+        identifier: raw_hr_payroll_groups
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_payroll_runs
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_payroll_details
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: employee_id
+            tests: [not_null]
+      - name: stg_payroll_add_ded
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: employee_id
+            tests: [not_null]
+      - name: stg_payroll_attendance_lines
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_payroll_variable_additions
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_payroll_variable_deductions
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_payroll_tax
+      - name: stg_payroll_loan_deductions
+      - name: stg_payroll_loan_data
+      - name: stg_payroll_installment_payments
+      - name: stg_payroll_compliance_basic
+      - name: stg_payroll_compliance_attendance
+      - name: stg_payroll_multi_currency
+      - name: stg_payroll_noncash_benefits
+      - name: stg_payroll_non_consider_items
+      - name: stg_payroll_salary_analyze
+      - name: stg_prl_loan
+      - name: stg_payroll_salary_retrieve
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_payroll_salary_bank_data
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_payroll_bank
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_payroll_bank_branch
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_performance_reviews
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_training_records
+        columns:
+          - name: id
+            tests: [not_null, unique]
+      - name: stg_lifecycle
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: employee_id
+            tests: [not_null]
+
+models:
+  - name: fact_attendance
+    description: Daily attendance fact — one row per employee per day.
+    columns:
+      - name: id
+        tests: [not_null, unique]
+      - name: employee_sk
+        tests: [not_null]
+
+  - name: fact_payroll
+    description: Legacy payroll view — refs fct_processed_salary (Phase 6).
+    columns:
+      - name: id
+        tests: [not_null, unique]
+      - name: employee_sk
+        tests: [not_null]
+
+  - name: fact_leave_balance
+    description: Legacy leave balance view — approved applications from fct_leave_application.
+    columns:
+      - name: id
+        tests: [not_null, unique]
+      - name: employee_sk
+        tests: [not_null]

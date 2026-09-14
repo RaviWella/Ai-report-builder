@@ -1,0 +1,112 @@
+version: 2
+
+models:
+  - name: dim_leave_type
+    description: SCD2 leave type dimension (hr_leavetype).
+    columns:
+      - name: leave_type_sk
+        tests: [not_null, unique]
+      - name: source_leave_type_id
+        tests: [not_null]
+
+  - name: dim_leave_status
+    description: Normalized leave workflow status lookup.
+    columns:
+      - name: leave_status_sk
+        tests: [not_null, unique]
+      - name: status_code
+        tests: [not_null, unique]
+
+  - name: dim_leave_source
+    description: Leave module origin lookup.
+    columns:
+      - name: leave_source_sk
+        tests: [not_null, unique]
+
+  - name: fct_leave_application
+    description: One row per leave application (Phase 1 standard leave).
+    columns:
+      - name: leave_application_sk
+        tests: [not_null, unique]
+      - name: source_application_id
+        tests: [not_null]
+
+  - name: fct_leave_daily
+    description: One row per employee per leave date.
+    columns:
+      - name: leave_daily_sk
+        tests: [not_null, unique]
+      - name: source_leave_date_id
+        tests: [not_null, unique]
+
+  - name: dim_leave_approval_level
+    description: Approval hierarchy lookup.
+    columns:
+      - name: leave_approval_level_sk
+        tests: [not_null, unique]
+
+  - name: fct_leave_balance_snapshot
+    description: Employee x leave type x snapshot date balance.
+    columns:
+      - name: balance_snapshot_sk
+        tests: [not_null, unique]
+
+  - name: fct_leave_approval
+    description: One row per leave approval action.
+    columns:
+      - name: leave_approval_sk
+        tests: [not_null, unique]
+      - name: source_approval_id
+        tests: [not_null, unique]
+
+  - name: fct_short_leave_usage
+    description: One row per short leave request.
+    columns:
+      - name: short_leave_sk
+        tests: [not_null, unique]
+
+  - name: fct_lieu_leave_entitlement
+    description: Earned lieu leave entitlement event.
+    columns:
+      - name: lieu_entitlement_sk
+        tests: [not_null, unique]
+
+  - name: fct_maternity_leave
+    description: One row per maternity leave request.
+    columns:
+      - name: maternity_leave_sk
+        tests: [not_null, unique]
+
+  - name: fct_leave_planner
+    description: One row per planned leave.
+    columns:
+      - name: leave_planner_sk
+        tests: [not_null, unique]
+
+  - name: dim_leave_reason
+    description: Predefined leave purpose lookup.
+    columns:
+      - name: leave_reason_sk
+        tests: [not_null, unique]
+      - name: source_reason_id
+        tests: [not_null]
+
+  - name: mart_leave_monthly_summary
+    description: Month x department x leave type rollup.
+    columns:
+      - name: leave_monthly_summary_sk
+        tests: [not_null, unique]
+
+  - name: mart_leave_employee_profile
+    description: Employee leave behavior profile.
+    columns:
+      - name: tenant_id
+        tests: [not_null]
+      - name: employee_sk
+        tests: [not_null, unique]
+
+  - name: mart_department_leave_heatmap
+    description: Department x calendar date absence heatmap.
+    columns:
+      - name: department_leave_heatmap_sk
+        tests: [not_null, unique]

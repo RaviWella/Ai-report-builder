@@ -1,0 +1,384 @@
+# MintHRM — HR Metric Registry
+# Mirrors finance_etl/metrics.yaml pattern.
+# All metrics resolve from {tenant_id}_hr_semantic.vw_* views.
+#
+# unit:        count | percent | currency | days | hours
+# category:    headcount | turnover | payroll | attendance | leave | performance
+# aggregation: count | sum | avg | rate | ratio
+# rankable:    true = can be grouped/ranked across a dimension
+#              false = formula/ratio — never rank directly
+
+metrics:
+
+  # ── Headcount ──────────────────────────────────────────────────────
+
+  - name: total_headcount
+    display_name: Total Headcount
+    description: Total number of active employees at end of period.
+    unit: count
+    category: headcount
+    aggregation: count
+    rankable: true
+    good_direction: up
+    semantic_view: vw_headcount
+    dimension_filter:
+      agg_fn: COUNT
+      agg_col: employee_id
+      status: active
+      status_column: metric_status
+    aliases:
+      - headcount
+      - total employees
+      - employee count
+      - staff count
+
+  - name: new_hires
+    display_name: New Hires
+    description: Number of employees who joined in the period.
+    unit: count
+    category: headcount
+    aggregation: count
+    rankable: true
+    good_direction: up
+    semantic_view: vw_headcount
+    dimension_filter:
+      agg_fn: COUNT
+      agg_col: employee_id
+      status: new_hire
+      status_column: metric_status
+      period_column: join_period_label
+    aliases:
+      - hires
+      - new joiners
+      - joiners
+
+  - name: separations
+    display_name: Separations
+    description: Number of employees who left (resigned, terminated, retired) in the period.
+    unit: count
+    category: turnover
+    aggregation: count
+    rankable: true
+    good_direction: down
+    semantic_view: vw_turnover
+    dimension_filter:
+      agg_fn: COUNT
+      agg_col: employee_id
+      period_column: period_label
+    aliases:
+      - leavers
+      - exits
+      - attrition count
+
+  # ── Turnover ───────────────────────────────────────────────────────
+
+  - name: turnover_rate
+    display_name: Turnover Rate
+    description: Separations / average headcount × 100. Lower is better.
+    unit: percent
+    category: turnover
+    aggregation: rate
+    rankable: false
+    good_direction: down
+    formula: "separations / total_headcount * 100"
+    depends_on:
+      - separations
+      - total_headcount
+    aliases:
+      - attrition rate
+      - attrition
+      - employee turnover
+
+  - name: voluntary_turnover_rate
+    display_name: Voluntary Turnover Rate
+    description: Voluntary resignations / average headcount × 100.
+    unit: percent
+    category: turnover
+    aggregation: rate
+    rankable: false
+    good_direction: down
+    formula: "voluntary_separations / total_headcount * 100"
+    depends_on:
+      - voluntary_separations
+      - total_headcount
+
+  - name: voluntary_separations
+    display_name: Voluntary Separations
+    description: Employees who resigned voluntarily.
+    unit: count
+    category: turnover
+    aggregation: count
+    rankable: true
+    semantic_view: vw_turnover
+    dimension_filter:
+      agg_fn: COUNT
+      agg_col: employee_id
+      status: resigned
+
+  # ── Payroll ────────────────────────────────────────────────────────
+
+  - name: payroll_employee_count
+    display_name: Payroll Employee Count
+    description: Employees with a processed payroll row in the period.
+    unit: count
+    category: payroll
+    aggregation: count
+    rankable: false
+    semantic_view: vw_payroll_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: COUNT
+      agg_col: employee_sk
+
+  - name: total_payroll_cost
+    display_name: Total Payroll Cost
+    description: Total net salary paid in the period.
+    unit: currency
+    category: payroll
+    aggregation: sum
+    rankable: true
+    good_direction: down
+    semantic_view: vw_payroll_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: net_salary
+    aliases:
+      - payroll
+      - total salary
+      - salary cost
+      - wage bill
+
+  - name: average_salary
+    display_name: Average Salary
+    description: Average net salary per employee in the period.
+    unit: currency
+    category: payroll
+    aggregation: avg
+    rankable: false
+    good_direction: null
+    formula: "total_payroll_cost / payroll_employee_count"
+    depends_on:
+      - total_payroll_cost
+      - payroll_employee_count
+    aliases:
+      - avg salary
+      - mean salary
+
+  - name: total_additions
+    display_name: Total Additions
+    description: Total processed payroll additions in the period (allowances, OT, bonuses).
+    unit: currency
+    category: payroll
+    aggregation: sum
+    rankable: true
+    good_direction: null
+    semantic_view: vw_payroll_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: total_additions
+    aliases:
+      - additions
+      - total additions
+
+  - name: total_tax
+    display_name: Total Tax
+    description: Total tax deducted from processed payroll in the period.
+    unit: currency
+    category: payroll
+    aggregation: sum
+    rankable: true
+    good_direction: down
+    semantic_view: vw_payroll_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: tax_amount
+
+  - name: total_gross
+    display_name: Total Gross Pay
+    description: Total gross salary from processed payroll in the period.
+    unit: currency
+    category: payroll
+    aggregation: sum
+    rankable: true
+    semantic_view: vw_payroll_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: gross_salary
+
+  # ── Attendance ─────────────────────────────────────────────────────
+
+  - name: attendance_rate
+    display_name: Attendance Rate
+    description: Present days / scheduled days × 100.
+    unit: percent
+    category: attendance
+    aggregation: rate
+    rankable: false
+    good_direction: up
+    formula: "present_days / scheduled_days * 100"
+    depends_on:
+      - present_days
+      - scheduled_days
+    aliases:
+      - attendance
+      - presence rate
+
+  - name: present_days
+    display_name: Present Days
+    description: Total days employees were present.
+    unit: days
+    category: attendance
+    aggregation: sum
+    rankable: true
+    semantic_view: vw_attendance_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: present_days
+
+  - name: scheduled_days
+    display_name: Scheduled Days
+    description: Total scheduled working days.
+    unit: days
+    category: attendance
+    aggregation: sum
+    rankable: true
+    semantic_view: vw_attendance_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: scheduled_days
+
+  - name: late_arrivals
+    display_name: Late Arrivals
+    description: Number of late check-in instances.
+    unit: count
+    category: attendance
+    aggregation: count
+    rankable: true
+    good_direction: down
+    semantic_view: vw_attendance_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: late_count
+    aliases:
+      - late count
+      - tardiness
+
+  - name: total_overtime_hours
+    display_name: Total Overtime Hours
+    description: Total overtime hours worked in the period.
+    unit: hours
+    category: attendance
+    aggregation: sum
+    rankable: true
+    semantic_view: vw_attendance_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: overtime_hours
+    aliases:
+      - overtime hours
+      - OT hours
+
+  # ── Leave ──────────────────────────────────────────────────────────
+
+  - name: leave_utilization_rate
+    display_name: Leave Utilization Rate
+    description: Leave days taken / leave days entitled × 100.
+    unit: percent
+    category: leave
+    aggregation: rate
+    rankable: false
+    good_direction: null
+    formula: "leave_days_taken / leave_days_entitled * 100"
+    depends_on:
+      - leave_days_taken
+      - leave_days_entitled
+
+  - name: leave_days_taken
+    display_name: Leave Days Taken
+    description: Total approved leave days consumed in the period.
+    unit: days
+    category: leave
+    aggregation: sum
+    rankable: true
+    semantic_view: vw_leave_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: days_taken
+    aliases:
+      - leave taken
+      - days off
+
+  - name: leave_days_entitled
+    display_name: Leave Days Entitled
+    description: Total leave days employees are entitled to.
+    unit: days
+    category: leave
+    aggregation: sum
+    rankable: true
+    semantic_view: vw_leave_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: days_entitled
+
+  - name: sick_leave_days
+    display_name: Sick Leave Days
+    description: Total sick leave days taken.
+    unit: days
+    category: leave
+    aggregation: sum
+    rankable: true
+    good_direction: down
+    semantic_view: vw_leave_summary
+    period_column: period_label
+    dimension_filter:
+      agg_fn: SUM
+      agg_col: sick_days
+    aliases:
+      - sick days
+      - medical leave
+
+  # ── Performance ────────────────────────────────────────────────────
+
+  - name: average_performance_score
+    display_name: Average Performance Score
+    description: Average overall performance review score (0–100).
+    unit: count
+    category: performance
+    aggregation: avg
+    rankable: false
+    good_direction: up
+    semantic_view: vw_performance_summary
+    dimension_filter:
+      agg_fn: AVG
+      agg_col: overall_score
+    aliases:
+      - performance score
+      - avg score
+      - performance rating
+
+  - name: high_performers
+    display_name: High Performers
+    description: Employees rated Excellent or Outstanding.
+    unit: count
+    category: performance
+    aggregation: count
+    rankable: true
+    good_direction: up
+    semantic_view: vw_performance_summary
+    dimension_filter:
+      agg_fn: COUNT
+      agg_col: employee_id
+      status: high_performer
+    aliases:
+      - top performers
+      - excellent employees

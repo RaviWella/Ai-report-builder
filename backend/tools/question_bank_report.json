@@ -1,0 +1,1208 @@
+{
+  "tenant": "demo_tenant",
+  "total": 50,
+  "passed": 47,
+  "failed": 3,
+  "results": [
+    {
+      "id": "payroll:Prepare a payroll summary report by combining em",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": "payroll.summary_detail",
+      "spec_template": "payroll.summary_detail",
+      "domain": "payroll",
+      "tables": [
+        "fct_overtime",
+        "dim_date",
+        "dim_payroll_group",
+        "mart_employee_current",
+        "vw_payroll_summary",
+        "vw_headcount",
+        "fct_payroll_process_execution",
+        "fact_payroll"
+      ],
+      "sql_source": "payroll_summary_view_template",
+      "has_sql": true,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "payroll:List employees with net salary, gross salary, an",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "payroll.summary_detail",
+      "domain": "payroll",
+      "tables": [
+        "vw_headcount",
+        "fct_overtime",
+        "mart_employee_current",
+        "vw_payroll_summary",
+        "dim_payroll_group",
+        "mart_salary_band_summary",
+        "fct_payroll_process_execution",
+        "fact_payroll"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "payroll:Show processed payroll totals by payroll group n",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "payroll.summary_detail",
+      "domain": "payroll",
+      "tables": [
+        "mart_employee_current",
+        "dim_payroll_group",
+        "fact_payroll",
+        "vw_payroll_summary",
+        "snap_employee",
+        "dim_payroll_period",
+        "vw_salary_bands",
+        "dim_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "mart_processed_payroll_summary"
+      ]
+    },
+    {
+      "id": "payroll:What is the total net payroll across all employe",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "payroll",
+      "tables": [
+        "dim_payroll_group",
+        "fact_payroll",
+        "snap_employee",
+        "dim_employee",
+        "mart_employee_current",
+        "vw_payroll_summary",
+        "dim_payroll_period",
+        "vw_salary_bands"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "payroll:What is the total gross payroll this month from ",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "payroll",
+      "tables": [
+        "vw_attendance_summary",
+        "vw_payroll_summary",
+        "mart_attendance_monthly_summary",
+        "mart_employee_current",
+        "dim_employee",
+        "dim_payroll_group",
+        "fact_payroll",
+        "mart_processed_payroll_summary"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fct_processed_salary"
+      ]
+    },
+    {
+      "id": "payroll:Show average basic salary by branch from the pay",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "payroll.summary_detail",
+      "domain": "payroll",
+      "tables": [
+        "vw_headcount",
+        "fct_overtime",
+        "vw_payroll_summary",
+        "mart_salary_band_summary",
+        "mart_employee_current",
+        "dim_employee",
+        "dim_payroll_group",
+        "fact_payroll"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "payroll:Compare total additions and total deductions by ",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "payroll.summary_detail",
+      "domain": "payroll",
+      "tables": [
+        "dim_payroll_group",
+        "mart_employee_current",
+        "snap_employee",
+        "fact_payroll",
+        "vw_payroll_summary",
+        "vw_salary_bands",
+        "dim_payroll_period",
+        "dim_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "payroll:List employees with EPF employee amount, ETF amo",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "mart_salary_band_summary",
+        "dim_payroll_group",
+        "vw_headcount",
+        "fct_payroll_process_execution",
+        "dim_employee",
+        "fct_compliance_payroll",
+        "dim_payroll_period",
+        "vw_payroll_summary",
+        "fct_salary_change",
+        "fct_processed_loan_deduction"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fct_processed_tax"
+      ]
+    },
+    {
+      "id": "payroll:Show payroll run status and totals from payroll ",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "payroll.summary_detail",
+      "domain": "payroll",
+      "tables": [
+        "dim_payroll_group",
+        "dim_employee",
+        "snap_employee",
+        "vw_payroll_summary",
+        "mart_employee_current",
+        "vw_salary_bands",
+        "dim_payroll_period",
+        "fact_payroll"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fct_payroll_process_execution"
+      ]
+    },
+    {
+      "id": "leave:Generate a report of employees and their leave d",
+      "section": "leave",
+      "ok": true,
+      "errors": [],
+      "template": "leave.detail_list",
+      "spec_template": "leave.detail_list",
+      "domain": "leave",
+      "tables": [
+        "fact_leave_balance",
+        "vw_leave_summary",
+        "vw_headcount",
+        "dim_employee",
+        "mart_employee_current",
+        "snap_designation",
+        "dim_org_unit",
+        "snap_employee"
+      ],
+      "sql_source": "leave_balance_template",
+      "has_sql": true,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "leave:Show leave summary by employee with leave type, ",
+      "section": "leave",
+      "ok": true,
+      "errors": [],
+      "template": "leave.detail_list",
+      "spec_template": "leave.detail_list",
+      "domain": "leave",
+      "tables": [
+        "fct_overtime",
+        "fact_leave_balance",
+        "vw_headcount",
+        "dim_employee",
+        "mart_employee_current",
+        "fct_employment_snapshot",
+        "fact_attendance"
+      ],
+      "sql_source": "leave_balance_template",
+      "has_sql": true,
+      "missing_expect_tables": [
+        "vw_leave_summary"
+      ]
+    },
+    {
+      "id": "leave:List approved leave days by leave type and branc",
+      "section": "leave",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "leave.detail_list",
+      "domain": "leave",
+      "tables": [
+        "fact_leave_balance",
+        "snap_designation",
+        "dim_org_unit",
+        "mart_employee_current",
+        "dim_employee",
+        "vw_headcount",
+        "vw_leave_summary",
+        "snap_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "leave:Which employees have the highest approved leave ",
+      "section": "leave",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "leave.detail_list",
+      "domain": "leave",
+      "tables": [
+        "fact_leave_balance",
+        "mart_employee_current",
+        "vw_leave_summary",
+        "fact_attendance",
+        "dim_employee",
+        "vw_attendance_summary",
+        "mart_attendance_monthly_summary"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "leave:Show leave utilization from vw_leave_summary wit",
+      "section": "leave",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "leave.detail_list",
+      "domain": "leave",
+      "tables": [
+        "vw_turnover",
+        "vw_headcount",
+        "vw_leave_summary",
+        "mart_employee_current",
+        "fct_lifecycle_event",
+        "fact_leave_balance",
+        "dim_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "leave:What is the total approved leave days by departm",
+      "section": "leave",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "leave.detail_list",
+      "domain": "leave",
+      "tables": [
+        "fact_leave_balance",
+        "dim_org_unit",
+        "vw_headcount",
+        "mart_employee_current",
+        "snap_employee",
+        "vw_leave_summary",
+        "snap_designation",
+        "dim_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "leave:List employees on leave this period with leave t",
+      "section": "leave",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "leave.detail_list",
+      "domain": "leave",
+      "tables": [
+        "snap_designation",
+        "fact_leave_balance",
+        "vw_leave_summary",
+        "mart_employee_current",
+        "dim_employee",
+        "dim_org_unit",
+        "vw_headcount",
+        "snap_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "attendance:Show attendance summary for this month.",
+      "section": "attendance",
+      "ok": true,
+      "errors": [],
+      "template": "attendance.monthly_summary",
+      "spec_template": "attendance.monthly_summary",
+      "domain": "attendance",
+      "tables": [
+        "vw_attendance_summary",
+        "fact_attendance",
+        "mart_attendance_monthly_summary",
+        "dim_employee",
+        "fct_daily_attendance",
+        "snap_shift",
+        "fct_overtime",
+        "fct_employment_snapshot"
+      ],
+      "sql_source": "attendance_summary_template",
+      "has_sql": true,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "attendance:Show attendance summary for this month with pres",
+      "section": "attendance",
+      "ok": true,
+      "errors": [],
+      "template": "attendance.monthly_summary",
+      "spec_template": "attendance.monthly_summary",
+      "domain": "attendance",
+      "tables": [
+        "vw_attendance_summary",
+        "vw_lifecycle_summary",
+        "vw_headcount",
+        "vw_turnover",
+        "fct_daily_attendance",
+        "fct_employment_snapshot",
+        "dim_employee",
+        "fct_lifecycle_event"
+      ],
+      "sql_source": "attendance_summary_template",
+      "has_sql": true,
+      "missing_expect_tables": [
+        "mart_attendance_monthly_summary"
+      ]
+    },
+    {
+      "id": "attendance:How many absent days were recorded last month by",
+      "section": "attendance",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "snap_designation",
+        "dim_org_unit",
+        "fct_daily_attendance",
+        "snap_employee",
+        "dim_employee",
+        "dim_designation",
+        "fct_employment_snapshot",
+        "mart_headcount_monthly",
+        "fact_attendance"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "mart_employee_current"
+      ]
+    },
+    {
+      "id": "attendance:List employees with the most late arrivals this ",
+      "section": "attendance",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "dim_org_unit",
+        "vw_headcount",
+        "fct_daily_attendance",
+        "snap_designation",
+        "snap_employee",
+        "fct_employment_snapshot",
+        "mart_headcount_monthly",
+        "dim_designation",
+        "fact_attendance",
+        "dim_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "mart_employee_current"
+      ]
+    },
+    {
+      "id": "attendance:What are total overtime hours by department this",
+      "section": "attendance",
+      "ok": false,
+      "errors": [
+        "broker grounded none of expect_tables"
+      ],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "dim_org_unit",
+        "snap_designation",
+        "vw_headcount",
+        "fct_daily_attendance",
+        "snap_employee",
+        "fct_employment_snapshot",
+        "dim_designation",
+        "dim_employee",
+        "mart_headcount_monthly",
+        "fact_attendance"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fct_overtime",
+        "mart_employee_current"
+      ]
+    },
+    {
+      "id": "attendance:Compare attendance present versus absent days by",
+      "section": "attendance",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "attendance",
+      "tables": [
+        "snap_designation",
+        "vw_attendance_summary",
+        "dim_org_unit",
+        "snap_employee",
+        "fct_daily_attendance",
+        "vw_headcount",
+        "fct_employment_snapshot",
+        "dim_designation"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "mart_employee_current"
+      ]
+    },
+    {
+      "id": "workforce:Generate a workforce report with employee name, ",
+      "section": "workforce",
+      "ok": true,
+      "errors": [],
+      "template": "workforce.roster",
+      "spec_template": "workforce.roster",
+      "domain": "workforce",
+      "tables": [
+        "vw_headcount",
+        "dim_org_unit",
+        "snap_designation",
+        "snap_employee",
+        "dim_designation",
+        "mart_headcount_monthly",
+        "vw_attendance_summary",
+        "dim_employee",
+        "mart_employee_current",
+        "mart_attendance_monthly_summary"
+      ],
+      "sql_source": "workforce_template",
+      "has_sql": true,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "workforce:Generate a workforce report by combining employe",
+      "section": "workforce",
+      "ok": true,
+      "errors": [],
+      "template": "workforce.roster",
+      "spec_template": "workforce.roster",
+      "domain": "workforce",
+      "tables": [
+        "dim_org_unit",
+        "mart_employee_current",
+        "snap_designation",
+        "vw_headcount",
+        "data_access_rules",
+        "dim_date",
+        "snap_employee",
+        "dim_designation"
+      ],
+      "sql_source": "workforce_template",
+      "has_sql": true,
+      "missing_expect_tables": [
+        "dim_employee"
+      ]
+    },
+    {
+      "id": "workforce:List active employees by department and designat",
+      "section": "workforce",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "snap_designation",
+        "vw_headcount",
+        "dim_org_unit",
+        "snap_employee",
+        "dim_designation",
+        "mart_headcount_monthly",
+        "dim_employee",
+        "vw_turnover",
+        "mart_employee_current",
+        "fct_lifecycle_event"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "workforce:Show employee master listing with legal entity, ",
+      "section": "workforce",
+      "ok": true,
+      "errors": [],
+      "template": "workforce.roster",
+      "spec_template": "workforce.roster",
+      "domain": "workforce",
+      "tables": [
+        "vw_headcount",
+        "snap_designation",
+        "dim_org_unit",
+        "snap_employee",
+        "dim_designation",
+        "dim_employee",
+        "vw_attendance_summary",
+        "mart_headcount_monthly",
+        "mart_employee_current",
+        "mart_attendance_monthly_summary"
+      ],
+      "sql_source": "workforce_template",
+      "has_sql": true,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "workforce:Who reports to each manager? Include manager nam",
+      "section": "workforce",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "snap_designation",
+        "vw_headcount",
+        "dim_org_unit",
+        "snap_employee",
+        "dim_designation",
+        "mart_headcount_monthly",
+        "vw_turnover",
+        "dim_employee",
+        "mart_employee_current",
+        "fact_attendance"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "workforce:List employees on probation with probation statu",
+      "section": "workforce",
+      "ok": false,
+      "errors": [
+        "broker grounded none of expect_tables"
+      ],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "dim_org_unit",
+        "vw_turnover",
+        "vw_lifecycle_summary",
+        "fct_lifecycle_event",
+        "snap_employee",
+        "snap_designation",
+        "dim_designation",
+        "mart_headcount_monthly",
+        "dim_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "mart_employee_current"
+      ]
+    },
+    {
+      "id": "workforce:Show employees by employment type and employee c",
+      "section": "workforce",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "vw_turnover",
+        "mart_employee_current",
+        "dim_employee",
+        "fct_lifecycle_event",
+        "mart_attendance_monthly_summary",
+        "dim_org_unit",
+        "vw_attendance_summary",
+        "dim_designation",
+        "mart_headcount_monthly"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "attrition:Which departments have the highest attrition rat",
+      "section": "attrition",
+      "ok": true,
+      "errors": [],
+      "template": "attrition.rate_by_department",
+      "spec_template": "attrition.rate_by_department",
+      "domain": "attrition",
+      "tables": [
+        "vw_turnover",
+        "vw_headcount",
+        "mart_employee_current",
+        "dim_employee",
+        "fct_lifecycle_event",
+        "dim_designation",
+        "snap_designation",
+        "dim_org_unit",
+        "mart_headcount_monthly",
+        "snap_employee"
+      ],
+      "sql_source": "attrition_rate_template",
+      "has_sql": true,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "attrition:What is the attrition rate by branch for the las",
+      "section": "attrition",
+      "ok": true,
+      "errors": [],
+      "template": "attrition.rate_by_department",
+      "spec_template": "attrition.rate_by_department",
+      "domain": "attrition",
+      "tables": [
+        "vw_headcount",
+        "vw_lifecycle_summary",
+        "mart_employee_current",
+        "dim_org_unit",
+        "vw_turnover",
+        "fct_lifecycle_event",
+        "snap_designation",
+        "snap_employee"
+      ],
+      "sql_source": "attrition_rate_template",
+      "has_sql": true,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "attrition:Which departments have the highest attrition rat",
+      "section": "attrition",
+      "ok": true,
+      "errors": [],
+      "template": "attrition.rate_by_department",
+      "spec_template": "attrition.rate_by_department",
+      "domain": "attrition",
+      "tables": [
+        "fct_lifecycle_event",
+        "vw_headcount",
+        "vw_turnover",
+        "dim_employee",
+        "mart_employee_current",
+        "dim_org_unit",
+        "dim_designation",
+        "mart_headcount_monthly",
+        "snap_designation",
+        "snap_employee"
+      ],
+      "sql_source": "attrition_rate_template",
+      "has_sql": true,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "attrition:List lifecycle separation events by event type a",
+      "section": "attrition",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "vw_turnover",
+        "vw_lifecycle_summary",
+        "dim_employee",
+        "fct_lifecycle_event",
+        "fact_attendance",
+        "mart_employee_current",
+        "vw_performance_summary"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "attrition:Compare monthly headcount versus terminations us",
+      "section": "attrition",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "headcount",
+      "tables": [
+        "vw_turnover",
+        "vw_headcount",
+        "fct_lifecycle_event",
+        "mart_employee_current",
+        "dim_employee",
+        "mart_attendance_monthly_summary",
+        "vw_attendance_summary",
+        "dim_org_unit",
+        "dim_designation",
+        "mart_headcount_monthly"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "headcount:What is the current headcount by branch?",
+      "section": "headcount",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "headcount",
+      "tables": [
+        "vw_headcount",
+        "dim_org_unit",
+        "snap_designation",
+        "dim_designation",
+        "snap_employee",
+        "mart_employee_current",
+        "dim_employee",
+        "mart_headcount_monthly",
+        "vw_turnover",
+        "fct_lifecycle_event"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "headcount:How many active employees are in the company rig",
+      "section": "headcount",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "vw_turnover",
+        "mart_employee_current",
+        "dim_designation",
+        "dim_employee",
+        "dim_org_unit",
+        "snap_designation",
+        "mart_headcount_monthly",
+        "snap_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "headcount:What is the employee count by department?",
+      "section": "headcount",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "headcount",
+      "tables": [
+        "vw_headcount",
+        "dim_org_unit",
+        "snap_designation",
+        "dim_designation",
+        "snap_employee",
+        "dim_employee",
+        "mart_employee_current",
+        "mart_headcount_monthly",
+        "vw_attendance_summary",
+        "fact_attendance"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "headcount:Show headcount trend by month for the last six m",
+      "section": "headcount",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "headcount",
+      "tables": [
+        "vw_turnover",
+        "vw_headcount",
+        "dim_employee",
+        "mart_attendance_monthly_summary",
+        "mart_employee_current",
+        "vw_attendance_summary",
+        "dim_org_unit",
+        "dim_designation",
+        "mart_headcount_monthly",
+        "snap_designation"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "headcount:Compare headcount by legal entity and branch as ",
+      "section": "headcount",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "headcount",
+      "tables": [
+        "vw_turnover",
+        "vw_headcount",
+        "mart_employee_current",
+        "fct_lifecycle_event",
+        "dim_employee",
+        "dim_org_unit",
+        "snap_designation",
+        "mart_headcount_monthly",
+        "dim_designation",
+        "snap_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "compensation:List employees from the salary bands view with b",
+      "section": "compensation",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "mart_salary_band_summary",
+        "dim_employee",
+        "dim_payroll_group",
+        "vw_headcount",
+        "fct_payroll_process_execution",
+        "fct_compliance_payroll",
+        "fct_salary_change",
+        "vw_payroll_summary",
+        "fct_processed_loan_deduction",
+        "dim_payroll_period"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_salary_bands",
+        "mart_employee_current"
+      ]
+    },
+    {
+      "id": "compensation:Show salary change events with old and new basic",
+      "section": "compensation",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "vw_attendance_summary",
+        "mart_employee_current",
+        "mart_attendance_monthly_summary",
+        "dim_employee",
+        "dim_org_unit",
+        "snap_designation",
+        "dim_designation",
+        "mart_headcount_monthly",
+        "snap_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fct_salary_change"
+      ]
+    },
+    {
+      "id": "compensation:Who are the top 10 highest paid employees by bas",
+      "section": "compensation",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "top_paid.ranking",
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "dim_org_unit",
+        "mart_employee_current",
+        "dim_designation",
+        "dim_employee",
+        "snap_designation",
+        "mart_headcount_monthly",
+        "vw_payroll_summary",
+        "snap_employee",
+        "dim_payroll_group"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fact_payroll"
+      ]
+    },
+    {
+      "id": "compensation:Show the top 5 employees by basic salary with na",
+      "section": "compensation",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "top_paid.ranking",
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "fct_payroll_process_execution",
+        "mart_salary_band_summary",
+        "dim_payroll_group",
+        "dim_employee",
+        "fct_compliance_payroll",
+        "dim_payroll_period",
+        "vw_payroll_summary",
+        "fct_salary_change",
+        "fct_processed_loan_deduction"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "mart_employee_current"
+      ]
+    },
+    {
+      "id": "lifecycle:Summarize vw_lifecycle_summary events by event c",
+      "section": "lifecycle",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_turnover",
+        "vw_performance_summary",
+        "vw_lifecycle_summary",
+        "fct_lifecycle_event",
+        "dim_employee",
+        "vw_headcount",
+        "dim_shift",
+        "mart_employee_current",
+        "fact_attendance",
+        "fct_daily_attendance"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": []
+    },
+    {
+      "id": "lifecycle:Show hires and separations by month from the lif",
+      "section": "lifecycle",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "fct_lifecycle_event",
+        "vw_turnover",
+        "vw_headcount",
+        "mart_employee_current",
+        "dim_employee",
+        "mart_attendance_monthly_summary",
+        "vw_performance_summary",
+        "vw_lifecycle_summary",
+        "vw_attendance_summary",
+        "fact_attendance"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_employment_monthly"
+      ]
+    },
+    {
+      "id": "benefits_and_deductions:Show processed additions and deductions by pay i",
+      "section": "benefits_and_deductions",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "payroll.summary_detail",
+      "domain": "payroll",
+      "tables": [
+        "dim_payroll_group",
+        "mart_employee_current",
+        "fact_payroll",
+        "vw_payroll_summary",
+        "dim_employee",
+        "dim_payroll_period",
+        "mart_processed_payroll_summary",
+        "snap_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fct_processed_add_ded",
+        "dim_canonical_pay_item"
+      ]
+    },
+    {
+      "id": "benefits_and_deductions:List loan deductions processed in payroll with e",
+      "section": "benefits_and_deductions",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "payroll.summary_detail",
+      "domain": "payroll",
+      "tables": [
+        "vw_headcount",
+        "mart_salary_band_summary",
+        "vw_payroll_summary",
+        "fact_payroll",
+        "mart_employee_current",
+        "dim_payroll_group",
+        "fct_payroll_process_execution",
+        "dim_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "fct_processed_loan_deduction"
+      ]
+    },
+    {
+      "id": "performance:Show performance summary ratings by department f",
+      "section": "performance",
+      "ok": false,
+      "errors": [
+        "broker grounded none of expect_tables"
+      ],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "fct_overtime",
+        "fact_attendance",
+        "fct_employment_snapshot",
+        "dim_employee",
+        "mart_attendance_monthly_summary",
+        "fct_lifecycle_event",
+        "snap_employee",
+        "snap_designation",
+        "mart_headcount_monthly"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_performance_summary",
+        "mart_employee_current"
+      ]
+    },
+    {
+      "id": "mixed_analytics:For each branch, show headcount, average basic s",
+      "section": "mixed_analytics",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": "leave.detail_list",
+      "domain": "leave",
+      "tables": [
+        "dim_payroll_group",
+        "dim_employee",
+        "vw_headcount",
+        "fact_leave_balance",
+        "mart_employee_current",
+        "vw_leave_summary",
+        "mart_salary_band_summary",
+        "fct_payroll_process_execution"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "vw_payroll_summary"
+      ]
+    },
+    {
+      "id": "mixed_analytics:Compare attendance late events and overtime hour",
+      "section": "mixed_analytics",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "attendance",
+      "tables": [
+        "fct_overtime",
+        "vw_headcount",
+        "vw_attendance_summary",
+        "fct_employment_snapshot",
+        "dim_employee",
+        "snap_designation",
+        "mart_attendance_monthly_summary",
+        "fact_attendance"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [
+        "mart_employee_current"
+      ]
+    }
+  ]
+}

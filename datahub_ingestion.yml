@@ -1,0 +1,14 @@
+# LEGACY reference only — do not ingest from this file for tenant ETL warehouses.
+#
+# Tenant ETL (hrm_wh_* + hr_semantic, hr, hr_snap):
+#   .\scripts\refresh_datamart_metadata.ps1 -TenantEtl -TenantId demo_tenant
+#
+# Legacy audit (warehouse + public_mint_audit):
+#   .\scripts\refresh_datamart_metadata.ps1
+#
+# Generated recipe (credentials from backend/.env, gitignored):
+#   datahub_ingestion.generated.yml
+#
+# Manual generate:
+#   cd backend && python tools/generate_tenant_datahub_ingest.py --tenant-id demo_tenant --write ../datahub_ingestion.generated.yml
+#   datahub ingest -c datahub_ingestion.generated.yml

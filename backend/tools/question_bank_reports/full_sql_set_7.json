@@ -1,0 +1,155 @@
+{
+  "summary": {
+    "total": 6,
+    "with_sql": 6,
+    "executed": true,
+    "exec_ok": 6,
+    "result_ok": 6,
+    "passed": 6,
+    "failed": 0
+  },
+  "results": [
+    {
+      "index": 36,
+      "section": "advanced_mixed_payroll_leave",
+      "question": "For employees in the top quartile of basic salary by branch, what is their average approved leave days this year compared to all other employees in the same branch?",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_mixed_payroll_leave_15",
+      "sql": "SELECT\n  e.location_name AS branch,\n  AVG(lb.days_approved) AS avg_approved_leave_days\nFROM hr_semantic.vw_payroll_summary p\nJOIN hr.mart_employee_current e ON e.emp_no = p.emp_no\nJOIN hr.fact_leave_balance lb ON lb.employee_sk = e.employee_sk\nWHERE COALESCE(lb.days_approved, 0) > 0\nGROUP BY e.location_name\nORDER BY branch\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "branch",
+        "avg_approved_leave_days"
+      ],
+      "row_count": 4,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 7,
+      "errors": []
+    },
+    {
+      "index": 37,
+      "section": "advanced_mixed_payroll_leave",
+      "question": "List employees with net salary above branch median who also exceeded 20 approved leave days this year, showing name, branch, net salary, and leave days.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_mixed_payroll_leave_16",
+      "sql": "SELECT\n  p.emp_fullname AS employee_name,\n  p.branch AS branch,\n  p.net_salary,\n  lb.days_approved AS leave_days\nFROM hr_semantic.vw_payroll_summary p\nJOIN hr.fact_leave_balance lb ON lb.employee_sk = p.employee_sk\nWHERE COALESCE(lb.days_approved, 0) > 20\nORDER BY p.net_salary DESC\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "employee_name",
+        "branch",
+        "net_salary",
+        "leave_days"
+      ],
+      "row_count": 1,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 34,
+      "errors": []
+    },
+    {
+      "index": 38,
+      "section": "advanced_mixed_payroll_leave",
+      "question": "By payroll group, show average basic salary, average approved leave days per employee, and employee count for active staff.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_payroll_rank_groups",
+      "sql": "SELECT\n  p.payroll_group_name,\n  pg.currency_code,\n  COUNT(DISTINCT p.employee_sk) AS employee_count,\n  SUM(COALESCE(p.net_salary, 0)) AS total_net_salary,\n  SUM(COALESCE(p.gross_salary, 0)) AS total_gross_salary,\n  AVG(COALESCE(p.basic_salary, 0)) AS avg_basic_salary\nFROM hr_semantic.vw_payroll_summary p\nLEFT JOIN hr.dim_payroll_group pg ON pg.payroll_group_name::text = p.payroll_group_name::text\nWHERE p.payroll_group_name IS NOT NULL\nGROUP BY p.payroll_group_name, pg.currency_code\nHAVING COUNT(DISTINCT p.employee_sk) > 0\nORDER BY total_net_salary DESC NULLS LAST\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "payroll_group_name",
+        "currency_code",
+        "employee_count",
+        "total_net_salary",
+        "total_gross_salary",
+        "avg_basic_salary"
+      ],
+      "row_count": 1,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 11,
+      "errors": []
+    },
+    {
+      "index": 39,
+      "section": "advanced_mixed_payroll_leave",
+      "question": "Which departments have high payroll cost (sum of basic salary) and high leave utilization (sum of approved leave days) in the same period? Rank departments by both metrics.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_mixed_payroll_leave_17",
+      "sql": "SELECT\n  e.designation_department AS department,\n  SUM(COALESCE(p.basic_salary, 0)) AS payroll_cost,\n  SUM(COALESCE(lb.days_approved, 0)) AS leave_days\nFROM hr.mart_employee_current e\nJOIN hr_semantic.vw_payroll_summary p ON p.emp_no = e.emp_no\nLEFT JOIN hr.fact_leave_balance lb ON lb.employee_sk = e.employee_sk\nGROUP BY e.designation_department\nORDER BY payroll_cost DESC, leave_days DESC\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "department",
+        "payroll_cost",
+        "leave_days"
+      ],
+      "row_count": 1,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": -2,
+      "errors": []
+    },
+    {
+      "index": 40,
+      "section": "advanced_mixed_payroll_leave",
+      "question": "Show employees with zero approved leave days this year but salary in the top 10% of their department, including name, department, branch, and basic salary.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_mixed_payroll_leave_zero_top_salary",
+      "sql": "WITH dept_p90 AS (\n  SELECT\n    e.designation_department AS department,\n    PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY e.basic_salary) AS top_decile_salary\n  FROM hr.mart_employee_current e\n  WHERE COALESCE(e.basic_salary, 0) > 0\n  GROUP BY e.designation_department\n)\nSELECT\n  e.emp_fullname AS employee_name,\n  e.designation_department AS department,\n  e.location_name AS branch,\n  e.basic_salary\nFROM hr.mart_employee_current e\nJOIN dept_p90 d ON d.department = e.designation_department\nLEFT JOIN hr.fact_leave_balance lb ON lb.employee_sk = e.employee_sk\nWHERE COALESCE(lb.days_approved, 0) = 0\n  AND e.basic_salary >= d.top_decile_salary\nORDER BY e.basic_salary DESC\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "employee_name",
+        "department",
+        "branch",
+        "basic_salary"
+      ],
+      "row_count": 0,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": 19,
+      "errors": []
+    },
+    {
+      "index": 41,
+      "section": "advanced_mixed_payroll_leave",
+      "question": "Compare average net salary between employees who took any sick leave versus none this year, broken down by branch.",
+      "tier": "B",
+      "sql_source": "verified:bank_advanced_mixed_payroll_leave_18",
+      "sql": "SELECT\n  p.branch AS branch,\n  AVG(p.net_salary) FILTER (WHERE ls.leave_type_name ILIKE '%sick%') AS avg_net_with_sick,\n  AVG(p.net_salary) FILTER (WHERE ls.leave_type_name IS NULL OR ls.leave_type_name NOT ILIKE '%sick%') AS avg_net_no_sick\nFROM hr_semantic.vw_payroll_summary p\nLEFT JOIN hr_semantic.vw_leave_summary ls ON ls.employee_sk = p.employee_sk\nGROUP BY p.branch\nORDER BY branch\nLIMIT 500;",
+      "ok": true,
+      "sql_adequacy_ok": true,
+      "sql_adequacy_error": null,
+      "executed": true,
+      "exec_error": null,
+      "result_columns": [
+        "branch",
+        "avg_net_with_sick",
+        "avg_net_no_sick"
+      ],
+      "row_count": 5,
+      "result_adequacy_ok": true,
+      "result_adequacy_error": null,
+      "result_score": -2,
+      "errors": []
+    }
+  ]
+}

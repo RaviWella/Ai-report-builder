@@ -1,0 +1,57 @@
+# ==============================================================================
+# Phase 6 — Payroll processed snapshot sources (v1.0)
+# Processed payroll tables are source-of-truth; warehouse preserves outputs only.
+# ==============================================================================
+
+version: 2
+
+sources:
+  - name: payroll_processed
+    description: >
+      Payroll processed outputs from MintHRM payroll engine (ETL → hr_raw).
+      Logical names match engine tables; physical tables are tenant stg_* loads.
+    schema: "{{ var('raw_schema', target.name ~ '_hr_raw') }}"
+
+    tables:
+      - name: processed_sal_basic_data
+        identifier: stg_payroll_details
+      - name: processed_sal_add_ded
+        identifier: stg_payroll_add_ded
+      - name: processed_sal_attendance
+        identifier: stg_payroll_attendance_lines
+      - name: processed_loan_data
+        identifier: stg_payroll_loan_data
+      - name: processed_installment_payment_data
+        identifier: stg_payroll_installment_payments
+      - name: prl_variableadditions_forsal
+        identifier: stg_payroll_variable_additions
+      - name: prl_variabledeductions_forsal
+        identifier: stg_payroll_variable_deductions
+      - name: processed_non_consider_pay_items
+        identifier: stg_payroll_non_consider_items
+      - name: processed_tax_data_for_employee
+        identifier: stg_payroll_tax
+      - name: prl_overtime
+        identifier: stg_prl_overtime
+      - name: processed_multi_currency_for_emp_sal
+        identifier: stg_payroll_multi_currency
+      - name: processed_sal_attendance_compliance
+        identifier: stg_payroll_compliance_attendance
+      - name: processed_sal_basic_data_compliance
+        identifier: stg_payroll_compliance_basic
+      - name: prl_processed_nonecash_benefits
+        identifier: stg_payroll_noncash_benefits
+      - name: hr_payroll_groups
+        identifier: raw_hr_payroll_groups
+      - name: prl_processed_salary_analyze
+        identifier: stg_payroll_salary_analyze
+      - name: prl_loan
+        identifier: stg_prl_loan
+      - name: prl_salary_retrieve
+        identifier: stg_payroll_salary_retrieve
+      - name: prl_salary_bank_data
+        identifier: stg_payroll_salary_bank_data
+      - name: bank
+        identifier: stg_payroll_bank
+      - name: mas_branch
+        identifier: stg_payroll_bank_branch

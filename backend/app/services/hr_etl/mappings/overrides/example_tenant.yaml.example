@@ -1,0 +1,8 @@
+# Rename to demo_tenant.yaml (or your tenant_id) when physical names differ.
+tables:
+  emp_basic: employees
+columns:
+  emp_basic:
+    id: employee_id
+    employee_code: emp_code
+    name: display_name

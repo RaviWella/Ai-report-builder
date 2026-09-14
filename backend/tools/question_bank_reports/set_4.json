@@ -1,0 +1,167 @@
+{
+  "tenant": "demo_tenant",
+  "set": 4,
+  "set_count": 10,
+  "set_size": 6,
+  "index_range": [
+    18,
+    23
+  ],
+  "total": 6,
+  "passed": 6,
+  "failed": 0,
+  "elapsed_seconds": 248.4,
+  "results": [
+    {
+      "index": 18,
+      "id": "advanced_workforce:Generate a workforce report by combining employe",
+      "section": "advanced_workforce",
+      "ok": true,
+      "errors": [],
+      "template": "workforce.roster",
+      "spec_template": "workforce.roster",
+      "domain": "workforce",
+      "tables": [
+        "vw_headcount",
+        "mart_horizontal_paysheet_core",
+        "payroll_report_column_config",
+        "dim_canonical_pay_item_seed",
+        "mart_horizontal_paysheet_dynamic",
+        "data_access_rules",
+        "mart_processed_payroll_summary",
+        "dim_employee"
+      ],
+      "sql_source": "workforce_template",
+      "has_sql": true,
+      "missing_expect_tables": [
+        "mart_employee_current",
+        "dim_org_unit"
+      ],
+      "elapsed_ms": 59469
+    },
+    {
+      "index": 19,
+      "id": "advanced_workforce:For each reporting manager, show manager name, b",
+      "section": "advanced_workforce",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "dim_org_unit",
+        "payroll_report_column_config",
+        "mart_horizontal_paysheet_dynamic",
+        "dim_canonical_pay_item",
+        "mart_processed_payroll_summary",
+        "mart_employee_current",
+        "dim_canonical_pay_item_seed",
+        "dim_employee"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [],
+      "elapsed_ms": 47743
+    },
+    {
+      "index": 20,
+      "id": "advanced_workforce:List organization units with more than 50 active",
+      "section": "advanced_workforce",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "headcount",
+      "tables": [
+        "vw_headcount",
+        "mart_cost_to_company",
+        "mart_employee_current",
+        "snap_employee",
+        "dim_org_unit",
+        "dim_employee",
+        "dim_designation",
+        "mart_headcount_monthly",
+        "fact_attendance",
+        "snap_designation"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [],
+      "elapsed_ms": 31527
+    },
+    {
+      "index": 21,
+      "id": "advanced_workforce:Show employees on probation ending in the next 6",
+      "section": "advanced_workforce",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "mart_cost_to_company",
+        "mart_employee_current",
+        "vw_headcount",
+        "vw_turnover",
+        "snap_employee",
+        "dim_employee",
+        "mart_headcount_monthly",
+        "dim_org_unit",
+        "vw_lifecycle_summary",
+        "snap_designation"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [],
+      "elapsed_ms": 25652
+    },
+    {
+      "index": 22,
+      "id": "advanced_workforce:Break down active headcount by employment type, ",
+      "section": "advanced_workforce",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "headcount",
+      "tables": [
+        "dim_employee",
+        "fact_attendance",
+        "mart_employee_current",
+        "dim_org_unit",
+        "vw_headcount",
+        "vw_attendance_summary",
+        "mart_headcount_monthly",
+        "fct_overtime"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [],
+      "elapsed_ms": 40148
+    },
+    {
+      "index": 23,
+      "id": "advanced_workforce:Find employees without a populated reporting man",
+      "section": "advanced_workforce",
+      "ok": true,
+      "errors": [],
+      "template": null,
+      "spec_template": null,
+      "domain": "generic",
+      "tables": [
+        "vw_headcount",
+        "dim_org_unit",
+        "payroll_report_column_config",
+        "dim_employee",
+        "mart_horizontal_paysheet_core",
+        "dim_canonical_pay_item_seed",
+        "mart_employee_current",
+        "mart_processed_payroll_summary"
+      ],
+      "sql_source": null,
+      "has_sql": false,
+      "missing_expect_tables": [],
+      "elapsed_ms": 37752
+    }
+  ]
+}

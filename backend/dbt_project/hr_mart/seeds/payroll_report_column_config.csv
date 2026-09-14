@@ -1,0 +1,8 @@
+tenant_id,source_pay_item_name,output_column_name,display_order,payroll_category,is_active
+demo_tenant,Fixed Addition,fixed_addition,10,allowance,true
+demo_tenant,Variable Addition,variable_addition,20,allowance,true
+demo_tenant,Overtime,ot_amount,30,attendance,true
+demo_tenant,Over Time,ot_amount_alt,31,attendance,false
+demo_tenant,Bonus,bonus_amount,40,incentive,true
+demo_tenant,Fixed Deduction,fixed_deduction,50,deduction,true
+demo_tenant,No Pay,nopay_amount,60,deduction,true

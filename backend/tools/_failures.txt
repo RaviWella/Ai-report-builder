@@ -1,0 +1,26 @@
+﻿advanced_workforce workforce headcount classified=headcount expected=workforce (eval_domain=workforce)
+advanced_attrition attrition mixed classified=mixed expected=attrition (eval_domain=attrition)
+advanced_attrition attrition unknown classified=unknown expected=attrition (eval_domain=attrition); expect_tables not in domain allowlist: vw_employment_monthly
+advanced_attrition attrition mixed classified=mixed expected=attrition (eval_domain=attrition)
+advanced_attrition attrition mixed classified=mixed expected=attrition (eval_domain=attrition)
+advanced_headcount headcount headcount expect_tables not in domain allowlist: hr_snap
+advanced_mixed_payroll_leave payroll mixed expect_tables not in domain allowlist: fact_leave_balance
+advanced_mixed_payroll_leave payroll leave classified=leave expected=payroll (eval_domain=payroll); expect_tables not in domain allowlist: fact_leave_balance
+advanced_mixed_payroll_leave payroll mixed expect_tables not in domain allowlist: fact_leave_balance
+advanced_mixed_payroll_leave payroll mixed expect_tables not in domain allowlist: fact_leave_balance
+advanced_mixed_payroll_leave payroll mixed expect_tables not in domain allowlist: fact_leave_balance
+advanced_mixed_payroll_leave payroll leave classified=leave expected=payroll (eval_domain=payroll); expect_tables not in domain allowlist: vw_leave_summary, fact_leave_balance
+advanced_mixed_att_workforce workforce attendance classified=attendance expected=workforce (eval_domain=workforce); expect_tables not in domain allowlist: vw_attendance_summary
+advanced_mixed_att_workforce attendance attendance expect_tables not in domain allowlist: mart_headcount_monthly
+advanced_mixed_att_workforce workforce attendance classified=attendance expected=workforce (eval_domain=workforce); expect_tables not in domain allowlist: vw_attendance_summary, fact_attendance
+advanced_mixed_att_workforce attendance attendance expect_tables not in domain allowlist: dim_designation
+advanced_mixed_att_workforce workforce attendance classified=attendance expected=workforce (eval_domain=workforce); expect_tables not in domain allowlist: vw_attendance_summary, fct_overtime
+advanced_benefits_performance payroll payroll expect_tables not in domain allowlist: fct_processed_loan_deduction
+advanced_benefits_performance compensation payroll expect_tables not in domain allowlist: mart_salary_band_summary
+advanced_benefits_performance compensation payroll expect_tables not in domain allowlist: fct_salary_change
+advanced_executive headcount mixed classified=mixed expected=headcount (eval_domain=headcount); expect_tables not in domain allowlist: vw_payroll_summary, fact_leave_balance, vw_turnover
+advanced_executive payroll mixed expect_tables not in domain allowlist: fct_overtime, fact_leave_balance
+advanced_executive attrition mixed classified=mixed expected=attrition (eval_domain=attrition); expect_tables not in domain allowlist: vw_attendance_summary, mart_headcount_monthly
+advanced_executive compensation mixed expect_tables not in domain allowlist: fct_overtime, fact_leave_balance
+advanced_executive headcount mixed classified=mixed expected=headcount (eval_domain=headcount); expect_tables not in domain allowlist: vw_payroll_summary, vw_turnover, vw_attendance_summary
+failed 25 total 63

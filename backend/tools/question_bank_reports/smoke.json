@@ -1,0 +1,33 @@
+{
+  "tenant": "demo_tenant",
+  "total": 1,
+  "passed": 1,
+  "failed": 0,
+  "elapsed_seconds": 72.7,
+  "results": [
+    {
+      "index": 0,
+      "id": "payroll:Prepare a payroll summary report by combining em",
+      "section": "payroll",
+      "ok": true,
+      "errors": [],
+      "template": "payroll.summary_detail",
+      "spec_template": "payroll.summary_detail",
+      "domain": "payroll",
+      "tables": [
+        "dim_payroll_group",
+        "snap_designation",
+        "vw_payroll_summary",
+        "fct_processed_tax",
+        "mart_employee_current",
+        "fact_payroll",
+        "dim_employee",
+        "fct_processed_add_ded"
+      ],
+      "sql_source": "payroll_summary_view_template",
+      "has_sql": true,
+      "missing_expect_tables": [],
+      "elapsed_ms": 67128
+    }
+  ]
+}

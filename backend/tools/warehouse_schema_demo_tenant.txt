@@ -1,0 +1,178 @@
+# Warehouse schema dump — demo_tenant
+# tables=57 schemas=hr, hr_semantic, hr_snap
+
+## data_access_rules (0 columns)
+  all: 
+
+## database_connections (0 columns)
+  all: 
+
+## dim_bank (0 columns)
+  all: 
+
+## dim_bank_branch (0 columns)
+  all: 
+
+## dim_canonical_pay_item (0 columns)
+  all: 
+
+## dim_canonical_pay_item_seed (0 columns)
+  all: 
+
+## dim_date (0 columns)
+  all: 
+
+## dim_designation (0 columns)
+  all: 
+
+## dim_employee (0 columns)
+  all: 
+
+## dim_org_unit (0 columns)
+  all: 
+
+## dim_payroll_group (0 columns)
+  all: 
+
+## dim_payroll_period (0 columns)
+  all: 
+
+## dim_shift (0 columns)
+  all: 
+
+## fact_attendance (0 columns)
+  all: 
+
+## fact_leave_balance (0 columns)
+  all: 
+
+## fact_payroll (0 columns)
+  all: 
+
+## fct_compliance_payroll (0 columns)
+  all: 
+
+## fct_daily_attendance (0 columns)
+  all: 
+
+## fct_employment_snapshot (0 columns)
+  all: 
+
+## fct_lifecycle_event (0 columns)
+  all: 
+
+## fct_noncash_benefit (0 columns)
+  all: 
+
+## fct_overtime (0 columns)
+  all: 
+
+## fct_payroll_process_execution (0 columns)
+  all: 
+
+## fct_processed_add_ded (0 columns)
+  all: 
+
+## fct_processed_attendance_payroll (0 columns)
+  all: 
+
+## fct_processed_loan_deduction (0 columns)
+  all: 
+
+## fct_processed_multi_currency_salary (0 columns)
+  all: 
+
+## fct_processed_salary (0 columns)
+  all: 
+
+## fct_processed_tax (0 columns)
+  all: 
+
+## fct_salary_bank_instruction (0 columns)
+  all: 
+
+## fct_salary_change (0 columns)
+  all: 
+
+## fct_variable_pay_item (0 columns)
+  all: 
+
+## mart_attendance_monthly_summary (0 columns)
+  all: 
+
+## mart_cost_to_company (0 columns)
+  all: 
+
+## mart_dynamic_pay_items (0 columns)
+  all: 
+
+## mart_employee_current (0 columns)
+  all: 
+
+## mart_headcount_monthly (0 columns)
+  all: 
+
+## mart_horizontal_paysheet_core (0 columns)
+  all: 
+
+## mart_horizontal_paysheet_dynamic (0 columns)
+  all: 
+
+## mart_payroll_pivot_column_catalog (0 columns)
+  all: 
+
+## mart_payroll_reconciliation (0 columns)
+  all: 
+
+## mart_processed_payroll_summary (0 columns)
+  all: 
+
+## mart_salary_band_summary (0 columns)
+  all: 
+
+## mart_statutory_summary (0 columns)
+  all: 
+
+## payroll_report_column_config (0 columns)
+  all: 
+
+## snap_designation (0 columns)
+  all: 
+
+## snap_employee (0 columns)
+  all: 
+
+## snap_shift (0 columns)
+  all: 
+
+## vw_attendance_summary (0 columns)
+  all: 
+
+## vw_employment_monthly (0 columns)
+  all: 
+
+## vw_headcount (0 columns)
+  all: 
+
+## vw_leave_summary (0 columns)
+  all: 
+
+## vw_lifecycle_summary (0 columns)
+  all: 
+
+## vw_payroll_summary (0 columns)
+  all: 
+
+## vw_performance_summary (0 columns)
+  all: 
+
+## vw_salary_bands (0 columns)
+  all: 
+
+## vw_turnover (0 columns)
+  all: 
+
+## Not present in this tenant
+  - fact_leave_transaction
+  - dim_leave_type
+  - fact_payroll_detail

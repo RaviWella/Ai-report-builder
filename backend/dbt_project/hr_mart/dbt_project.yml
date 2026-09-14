@@ -1,0 +1,46 @@
+name: hr_mart
+version: '1.0.0'
+config-version: 2
+
+profile: hr_mart
+
+model-paths: ["models"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  source_system: "minthrm"
+  attendance_start_date: "2020-01-01"
+  # Phase 6 payroll — tax/loan facts read from staged ETL tables (may be empty)
+  stub_processed_tax: false
+  # Defaults to dbt --target (e.g. demo_tenant); override with --vars '{"tenant_id": "..."}'
+  tenant_id: "demo_tenant"
+  raw_schema: "hr_raw"
+  mart_schema: "hr"
+  semantic_schema: "hr_semantic"
+  custom_reports_schema: "custom_reports"
+  control_schema: "hr_control"
+  snap_schema: "hr_snap"
+
+models:
+  hr_mart:
+    staging:
+      +schema: "{{ var('raw_schema', target.name ~ '_hr_raw') }}"
+      +materialized: view
+    marts:
+      +schema: "{{ var('mart_schema', target.name ~ '_hr') }}"
+      +materialized: table
+      leave:
+        +tags: ['leave', 'warehouse_marts']
+      payroll:
+        +tags: ['payroll', 'warehouse_marts']
+    semantic:
+      +schema: "{{ var('semantic_schema', target.name ~ '_hr_semantic') }}"
+      +materialized: view

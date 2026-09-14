@@ -1,0 +1,675 @@
+# MintHRM Datamart semantic catalog — aligned to HRIS product modules.
+# Tables listed per topic reflect the current mart (public_mint_audit). Empty tables: []
+# means the topic is keyword-ready; run semantic_catalog_tool refresh --write after mart upgrades.
+# Physical columns must still appear in the grounded allowlist (Postgres introspection).
+
+catalog_meta:
+  mart_purpose: HR reporting datamart fed from the HRIS operational database
+  join_key_conventions: |
+    Prefer employee_sk between mart_employee_current, payroll marts/facts, bank, and leave.
+    Use emp_no for employee number in results. source_emp_id is the HRIS key on dim_employee.
+    Payroll period grain uses payroll_period_sk. Bank/org dims use source_*_id (cast ::text if needed).
+  hris_modules:
+    - loan
+    - employee_information
+    - employee_lifecycle
+    - onboarding_offboarding
+    - attendance
+    - attendance_for_payroll
+    - leave
+    - payroll
+    - benefit
+    - recruitment
+    - performance_learning_development
+    - support_system
+    - task_management
+    - talent_management
+    - past_data
+
+topics:
+  employee_information:
+    keywords:
+      - employee information
+      - employee profile
+      - employee master
+      - workforce
+      - employee
+      - employees
+      - staff
+      - personnel
+      - headcount
+      - org chart
+      - organization
+      - organisation
+      - company
+      - branch
+      - department
+      - designation
+      - job title
+      - manager
+      - reporting manager
+    tables:
+      - dim_employee
+      - dim_designation
+      - dim_org_unit
+      - mart_employee_current
+      - mart_headcount_monthly
+      - snap_designation
+      - snap_employee
+      - vw_headcount
+    description: Core employee, job, and organization attributes for HR master-data questions.
+
+  employee_lifecycle:
+    keywords:
+      - employee lifecycle
+      - lifecycle
+      - employment status
+      - probation
+      - hire
+      - hired
+      - resignation
+      - terminate
+      - termination
+      - retired
+      - retirement
+      - attrition
+      - turnover
+      - last working day
+    tables:
+      - dim_employee
+      - fact_attrition
+      - fact_employee_snapshot
+      - dim_termination_reason
+    description: Hire-to-exit status, attrition, and point-in-time workforce snapshots.
+
+  onboarding_offboarding:
+    keywords:
+      - onboarding
+      - on boarding
+      - on-boarding
+      - offboarding
+      - off-boarding
+      - off boarding
+      - join
+      - joined
+      - new hire
+      - appointment
+      - offer accepted
+      - separation
+      - exit
+    tables:
+      - dim_employee
+      - fact_recruitment_pipeline
+      - fact_attrition
+      - dim_termination_reason
+    description: Pre-hire pipeline through joining; exits and termination reasons.
+
+  attendance:
+    keywords:
+      - attendance
+      - absent
+      - absence
+      - present
+      - punch in
+      - punch out
+      - clock in
+      - clock out
+      - timesheet
+      - time tracking
+      - shift
+      - late
+      - early leave
+      - overtime
+      - ot hours
+      - worked hours
+    tables:
+      - fact_attendance
+      - dim_employee
+    description: Daily attendance, punches, shifts, lateness, and overtime.
+
+  attendance_for_payroll:
+    keywords:
+      - attendance for payroll
+      - payroll attendance
+      - salary processed attendance
+      - nopay
+      - no pay
+      - pay cycle attendance
+      - ot for payroll
+      - consider ot
+      - late for payroll
+    tables:
+      - fact_attendance
+      - fact_payroll_detail
+      - dim_employee
+    description: Attendance flags and hours that drive payroll (OT, late, processed for pay).
+
+  leave:
+    keywords:
+      - leave
+      - leave utilization
+      - leave transaction
+      - leave type
+      - leave balance
+      - leave days
+      - leave apply
+      - time off
+      - vacation
+      - annual leave
+      - sick leave
+    tables:
+      - fact_leave_transaction
+      - dim_leave_type
+      - dim_employee
+    description: Leave applications, approvals, types, and days taken.
+
+  payroll:
+    keywords:
+      - payroll
+      - salary
+      - salaries
+      - wage
+      - wages
+      - pay
+      - compensation
+      - basic salary
+      - gross pay
+      - net pay
+      - payslip
+      - pay period
+      - pay component
+      - pay group
+      - epf
+      - etf
+      - tax
+      - deduction
+      - earning
+    tables:
+      - fact_payroll_detail
+      - dim_pay_group
+      - dim_pay_component
+      - dim_employee
+    description: Payroll runs, components, gross/net amounts, and pay groups.
+
+  benefit:
+    keywords:
+      - benefit
+      - benefits
+      - allowance
+      - insurance
+      - medical
+      - welfare
+      - earning component
+      - non cash
+    tables:
+      - dim_pay_component
+      - fact_payroll_detail
+      - dim_employee
+    description: Benefit-related pay components and amounts (often via payroll component rows).
+
+  loan:
+    keywords:
+      - loan
+      - advance
+      - salary advance
+      - staff loan
+      - repayment
+      - installment
+      - loan balance
+    tables: []
+    description: Employee loans (add fact/dim loan tables to the mart when available in HRIS extract).
+
+  recruitment:
+    keywords:
+      - recruitment
+      - recruit
+      - hiring
+      - candidate
+      - applicants
+      - requisition
+      - job offer
+      - interview
+      - shortlist
+      - time to hire
+      - time to fill
+      - cost per hire
+      - pipeline stage
+      - cv
+    tables:
+      - fact_recruitment_pipeline
+      - dim_candidate
+      - dim_source
+      - dim_job
+    description: Hiring funnel, candidates, sources, and requisitions.
+
+  performance_learning_development:
+    keywords:
+      - performance management
+      - performance review
+      - appraisal
+      - rating
+      - goal
+      - nine box
+      - review cycle
+      - learning
+      - development
+      - l&d
+      - training
+      - competency
+    tables:
+      - fact_performance_review
+      - dim_review_cycle
+      - dim_rating_scale
+      - dim_employee
+    description: Performance reviews, ratings, cycles, and L&D outcomes on review records.
+
+  talent_management:
+    keywords:
+      - talent management
+      - talent
+      - succession
+      - high potential
+      - nine box grid
+      - pipeline talent
+      - internal mobility
+    tables:
+      - fact_performance_review
+      - fact_recruitment_pipeline
+      - dim_employee
+    description: Talent signals from performance and recruitment pipeline analytics.
+
+  support_system:
+    keywords:
+      - support system
+      - helpdesk
+      - help desk
+      - ticket
+      - case
+      - service request
+      - hr support
+    tables: []
+    description: HR support tickets (add support fact tables when mart includes them).
+
+  task_management:
+    keywords:
+      - task management
+      - task
+      - tasks
+      - assignment
+      - to do
+      - workflow task
+    tables: []
+    description: HR/employee tasks (add task fact tables when mart includes them).
+
+  past_data:
+    keywords:
+      - past data
+      - historical
+      - history
+      - snapshot
+      - point in time
+      - trend
+      - as of date
+      - month end headcount
+      - workforce history
+    tables:
+      - fact_employee_snapshot
+      - dim_date
+      - dim_employee
+    description: Historical workforce snapshots and calendar for time-series reporting.
+
+dimensions:
+  employee_id:
+    table: dim_employee
+    column: employee_id
+    synonyms: [emp id, employee id, internal employee id]
+
+  employee_number:
+    table: mart_employee_current
+    column: emp_no
+    synonyms: [emp no, employee no, employee number, staff number, emp number]
+
+  employment_category:
+    table: mart_employee_current
+    column: employee_category
+    synonyms: [employment category, employee category, emp category, employment type label]
+
+  employee_name:
+    table: mart_employee_current
+    column: emp_fullname
+    synonyms: [employee name, name, full name, emp name, preferred name]
+
+  company:
+    table: mart_employee_current
+    column: legal_entity
+    synonyms: [company, legal entity, employer, organisation name, organization name]
+
+  branch:
+    table: mart_employee_current
+    column: location_name
+    synonyms: [branch, location, site, office, branch name]
+
+  department:
+    table: mart_employee_current
+    column: designation_department
+    synonyms: [department, dept, section, division, emp section]
+
+  organization_unit:
+    table: mart_employee_current
+    column: emp_position
+    synonyms: [organization unit, org unit, organisational unit, ou, hierarchy]
+
+  designation:
+    table: mart_employee_current
+    column: designation
+    synonyms: [designation, job title, title, role, position]
+
+  designation_id:
+    table: dim_employee
+    column: designation_id
+    synonyms: [designation id, job id, title id, role id]
+
+  job_title:
+    table: dim_job
+    column: job_title
+    synonyms: [job title, title, position, role, designation name]
+
+  reporting_manager:
+    table: mart_employee_current
+    column: superior_emp_no
+    synonyms: [reporting manager, manager id, manager employee id, reports to, supervisor, line manager]
+
+  hire_date:
+    table: dim_employee
+    column: hire_date
+    synonyms: [hire date, joined date, start date, date of joining]
+
+  employee_status:
+    table: dim_employee
+    column: employee_status
+    synonyms: [employee status, employment status, active, inactive]
+
+  lifecycle_status:
+    table: dim_employee
+    column: emp_lifecycle_status
+    synonyms: [lifecycle status, employee lifecycle, lifecycle stage]
+
+  basic_salary:
+    table: dim_employee
+    column: basic_salary
+    synonyms: [basic salary, salary, base pay, basic pay]
+
+  payroll_basic_salary:
+    table: fact_payroll_detail
+    column: basic_salary
+    synonyms: [payroll basic salary, paid basic, basic in payroll]
+
+  gross_pay:
+    table: fact_payroll_detail
+    column: gross_pay
+    synonyms: [gross pay, gross salary, gross earnings, total gross]
+
+  net_pay:
+    table: fact_payroll_detail
+    column: net_pay
+    synonyms: [net pay, net salary, take home, net earnings]
+
+  pay_component:
+    table: fact_payroll_detail
+    column: component_name
+    synonyms: [pay component, component, allowance, deduction name, payroll component]
+
+  pay_amount:
+    table: fact_payroll_detail
+    column: amount
+    synonyms: [pay amount, component amount, line amount, payroll amount]
+
+  leave_type_name:
+    table: dim_leave_type
+    column: leave_type_name
+    synonyms: [leave type, leave type name, type of leave]
+
+  leave_days:
+    table: fact_leave_transaction
+    column: leave_days
+    synonyms: [leave days, leave days taken, days taken, leave taken]
+
+  leave_apply_date:
+    table: fact_leave_transaction
+    column: leave_apply_date
+    synonyms: [leave apply date, applied date, application date, leave applied]
+
+  leave_date:
+    table: fact_leave_transaction
+    column: leave_date
+    synonyms: [leave date, date of leave, leave day]
+
+  leave_start_date:
+    table: fact_leave_transaction
+    column: leave_start_date
+    synonyms: [leave start date, leave start, start date of leave]
+
+  leave_end_date:
+    table: fact_leave_transaction
+    column: leave_end_date
+    synonyms: [leave end date, leave end, end date of leave]
+
+  leave_status:
+    table: fact_leave_transaction
+    column: leave_status_name
+    synonyms: [leave status, approval status, leave final status]
+
+  worked_hours:
+    table: fact_attendance
+    column: worked_hours
+    synonyms: [worked hours, hours worked, work hours, attendance hours]
+
+  absent_flag:
+    table: fact_attendance
+    column: absent_flag
+    synonyms: [absent, absence, absent flag, did not attend]
+
+  overtime_hours:
+    table: fact_attendance
+    column: overtime_hours
+    synonyms: [overtime hours, ot hours, overtime, ot]
+
+  attendance_date:
+    table: fact_attendance
+    column: attendance_date
+    synonyms: [attendance date, work date, punch date]
+
+  candidate_name:
+    table: dim_candidate
+    column: candidate_name
+    synonyms: [candidate name, applicant name, candidate]
+
+  recruitment_stage:
+    table: fact_recruitment_pipeline
+    column: pipeline_stage
+    synonyms: [pipeline stage, hiring stage, recruitment stage, stage]
+
+  performance_rating:
+    table: fact_performance_review
+    column: rating_score
+    synonyms: [rating, performance rating, review rating, score]
+
+  review_cycle:
+    table: dim_review_cycle
+    column: review_cycle_name
+    synonyms: [review cycle, appraisal cycle, performance cycle]
+
+  termination_reason:
+    table: fact_attrition
+    column: termination_reason
+    synonyms: [termination reason, reason for leaving, exit reason]
+
+  snapshot_headcount:
+    table: fact_employee_snapshot
+    column: headcount
+    synonyms: [snapshot headcount, historical headcount, headcount as of]
+
+metrics:
+  employee_count:
+    description: Number of employees — COUNT distinct employee_id on dim_employee (or headcount on fact_employee_snapshot for a date).
+    tables: [dim_employee, fact_employee_snapshot]
+    grain: employee
+
+  headcount:
+    description: Active workforce count — prefer headcount from fact_employee_snapshot for a given snapshot_date; else COUNT on dim_employee.
+    tables: [fact_employee_snapshot, dim_employee]
+    grain: employee
+
+  average_salary:
+    description: Average basic salary — AVG(basic_salary) from fact_payroll_detail or dim_employee; join on employee_no or employee_id as available.
+    tables: [fact_payroll_detail, dim_employee]
+    grain: employee
+
+  top_paid:
+    description: Rank employees by basic_salary DESC with LIMIT N on fact_payroll_detail (latest pay period) or dim_employee.
+    tables: [fact_payroll_detail, dim_employee]
+    grain: employee
+
+  total_gross_pay:
+    description: Sum of gross_pay from fact_payroll_detail for a pay period (filter by pay_year, pay_month, pay_period).
+    tables: [fact_payroll_detail]
+    grain: pay_period
+
+  total_net_pay:
+    description: Sum of net_pay from fact_payroll_detail for a pay period.
+    tables: [fact_payroll_detail]
+    grain: pay_period
+
+  leave_days_total:
+    description: Sum leave_days from fact_leave_transaction; filter by leave_date or leave_apply_date and leave_status_name as needed.
+    tables: [fact_leave_transaction, dim_leave_type, dim_employee]
+    grain: employee
+
+  absent_days_count:
+    description: Count attendance rows where absent_flag is true, or sum absent days from fact_attendance.
+    tables: [fact_attendance, dim_employee]
+    grain: employee
+
+  attrition_count:
+    description: Count termination events from fact_attrition (termination_count or COUNT rows) by period, branch, or department.
+    tables: [fact_attrition, dim_employee]
+    grain: termination
+
+  time_to_hire:
+    description: Average or distribution of time_to_hire_days from fact_recruitment_pipeline for filled requisitions.
+    tables: [fact_recruitment_pipeline]
+    grain: requisition
+
+  average_performance_rating:
+    description: AVG(rating_score) or AVG(result_score) from fact_performance_review for a review cycle.
+    tables: [fact_performance_review, dim_review_cycle, dim_employee]
+    grain: employee
+
+joins:
+  - left_table: dim_employee
+    left_column: employee_id
+    right_table: fact_attendance
+    right_column: employee_id
+    purpose: Attendance punches and hours per employee.
+
+  - left_table: dim_employee
+    left_column: employee_no
+    right_table: fact_payroll_detail
+    right_column: employee_no
+    purpose: Payroll lines and amounts per employee (payroll fact uses employee_no).
+
+  - left_table: dim_employee
+    left_column: employee_id
+    right_table: fact_leave_transaction
+    right_column: employee_id
+    purpose: Leave transactions with employee master attributes.
+
+  - left_table: fact_leave_transaction
+    left_column: leave_type_id
+    right_table: dim_leave_type
+    right_column: leave_type_id
+    purpose: Leave type name and entitlement on leave rows.
+
+  - left_table: dim_employee
+    left_column: employee_id
+    right_table: fact_attrition
+    right_column: employee_id
+    purpose: Terminations and exit reasons with employee org attributes.
+
+  - left_table: dim_employee
+    left_column: employee_id
+    right_table: fact_performance_review
+    right_column: employee_id
+    purpose: Performance ratings and review items per employee.
+
+  - left_table: fact_performance_review
+    left_column: review_cycle_id
+    right_table: dim_review_cycle
+    right_column: review_cycle_id
+    purpose: Review cycle name and dates on performance facts.
+
+  - left_table: fact_recruitment_pipeline
+    left_column: candidate_id
+    right_table: dim_candidate
+    right_column: candidate_id
+    purpose: Candidate profile on recruitment pipeline rows.
+
+  - left_table: fact_recruitment_pipeline
+    left_column: job_key
+    right_table: dim_job
+    right_column: job_key
+    purpose: Job title and grade on requisitions (job_key is surrogate; use designation_id if keyed in allowlist).
+
+  - left_table: dim_employee
+    left_column: employee_id
+    right_table: fact_employee_snapshot
+    right_column: employee_id
+    purpose: Historical headcount and compensation snapshots per employee.
+
+  - left_table: fact_employee_snapshot
+    left_column: snapshot_date_key
+    right_table: dim_date
+    right_column: date_key
+    purpose: Calendar attributes for snapshot reporting (if date_key columns exist in allowlist).
+
+  - left_table: mart_employee_current
+    left_column: employee_sk
+    right_table: fct_salary_bank_instruction
+    right_column: employee_sk
+    purpose: Salary bank account instructions per employee.
+
+  - left_table: fct_salary_bank_instruction
+    left_column: source_bank_id
+    right_table: dim_bank
+    right_column: source_bank_id
+    purpose: Bank code and bank name for salary bank rows.
+
+  - left_table: mart_employee_current
+    left_column: employee_sk
+    right_table: dim_employee
+    right_column: employee_sk
+    purpose: Current mart row aligned to dim_employee via employee_sk.
+
+  - left_table: mart_employee_current
+    left_column: employee_sk
+    right_table: mart_processed_payroll_summary
+    right_column: employee_sk
+    purpose: Payroll amounts per employee and pay period.
+
+  - left_table: mart_employee_current
+    left_column: employee_sk
+    right_table: vw_payroll_summary
+    right_column: employee_sk
+    purpose: Payslip-style payroll view per employee and period.
+
+  - left_table: fact_leave_transaction
+    left_column: leave_type_id
+    right_table: dim_leave_type
+    right_column: leave_type_id
+    purpose: Leave type labels on transactions.
+
+  - left_table: mart_employee_current
+    left_column: employee_sk
+    right_table: vw_attendance_summary
+    right_column: employee_sk
+    purpose: Attendance KPIs per employee.

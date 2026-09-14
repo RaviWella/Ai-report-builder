@@ -1,0 +1,1995 @@
+# Per-tenant semantic catalog (ETL warehouse: hr_semantic, hr, hr_snap).
+# Generated: python tools/semantic_catalog_tool.py refresh --tenant demo_tenant --write
+
+catalog_meta:
+  mart_purpose: HR reporting datamart fed from the HRIS operational database
+  join_key_conventions: 'Prefer employee_sk to join workforce marts (mart_employee_current), payroll facts/marts,
+
+    bank instructions, leave balance, and processed payroll. Use emp_no for business employee number
+
+    in SELECT lists (mart.emp_no), not dim_employee.employee_id. HRIS natural key is source_emp_id.
+
+    Payroll period grain uses payroll_period_sk on fct_processed_* and mart_processed_payroll_summary.
+
+    Bank and org dimensions use source_*_id keys (cast ::text when joining to facts).
+
+    '
+  hris_modules:
+  - loan
+  - employee_information
+  - employee_lifecycle
+  - onboarding_offboarding
+  - attendance
+  - attendance_for_payroll
+  - leave
+  - payroll
+  - benefit
+  - recruitment
+  - performance_learning_development
+  - support_system
+  - task_management
+  - talent_management
+  - past_data
+  tenant_id: demo_tenant
+  derived_from: semantic_catalog.yaml
+topics:
+  employee_information:
+    keywords:
+    - employee information
+    - employee profile
+    - employee master
+    - workforce
+    - employee
+    - employees
+    - staff
+    - personnel
+    - headcount
+    - org chart
+    - organization
+    - organisation
+    - company
+    - branch
+    - department
+    - designation
+    - job title
+    - manager
+    - reporting manager
+    - org
+    - unit
+    - mart
+    - current
+    - monthly
+    - snap
+    - cost
+    - bank
+    tables:
+    - dim_employee
+    - dim_designation
+    - dim_org_unit
+    - mart_employee_current
+    - mart_headcount_monthly
+    - snap_designation
+    - snap_employee
+    - vw_headcount
+    - mart_cost_to_company
+    - dim_bank
+    - dim_bank_branch
+    description: Core employee, job, and organization attributes for HR master-data questions.
+  employee_lifecycle:
+    keywords:
+    - employee lifecycle
+    - lifecycle
+    - employment status
+    - probation
+    - hire
+    - hired
+    - resignation
+    - terminate
+    - termination
+    - retired
+    - retirement
+    - attrition
+    - turnover
+    - last working day
+    - fct
+    - event
+    - lifecycle summary
+    - performance
+    tables:
+    - dim_employee
+    - fct_lifecycle_event
+    - vw_lifecycle_summary
+    - vw_performance_summary
+    - vw_turnover
+    - vw_headcount
+    - mart_employee_current
+    description: Hire-to-exit status, attrition, and point-in-time workforce snapshots.
+  onboarding_offboarding:
+    keywords:
+    - onboarding
+    - on boarding
+    - on-boarding
+    - offboarding
+    - off-boarding
+    - off boarding
+    - join
+    - joined
+    - new hire
+    - appointment
+    - offer accepted
+    - separation
+    - exit
+    tables:
+    - dim_employee
+    description: Pre-hire pipeline through joining; exits and termination reasons.
+  attendance:
+    keywords:
+    - attendance
+    - absent
+    - absence
+    - present
+    - punch in
+    - punch out
+    - clock in
+    - clock out
+    - timesheet
+    - time tracking
+    - shift
+    - late
+    - early leave
+    - overtime
+    - ot hours
+    - worked hours
+    - fct
+    - daily
+    - employment snapshot
+    - fct employment
+    - snapshot
+    - mart
+    - monthly
+    - summary
+    - snap
+    - statutory
+    tables:
+    - fact_attendance
+    - dim_employee
+    - dim_shift
+    - fct_daily_attendance
+    - fct_employment_snapshot
+    - fct_overtime
+    - mart_attendance_monthly_summary
+    - snap_shift
+    - vw_attendance_summary
+    - vw_employment_monthly
+    - mart_statutory_summary
+    description: Daily attendance, punches, shifts, lateness, and overtime.
+  attendance_for_payroll:
+    keywords:
+    - attendance for payroll
+    - payroll attendance
+    - salary processed attendance
+    - nopay
+    - no pay
+    - pay cycle attendance
+    - ot for payroll
+    - consider ot
+    - late for payroll
+    tables:
+    - fact_attendance
+    - dim_employee
+    description: Attendance flags and hours that drive payroll (OT, late, processed for pay).
+  leave:
+    keywords:
+    - leave
+    - leave utilization
+    - leave transaction
+    - leave type
+    - leave balance
+    - leave days
+    - leave apply
+    - time off
+    - vacation
+    - annual leave
+    - sick leave
+    - balance
+    - leave summary
+    - approval
+    - level
+    - source
+    - status
+    - snap
+    - type
+    tables:
+    - dim_employee
+    - mart_employee_current
+    - dim_leave_type
+    - dim_leave_reason
+    - fct_leave_application
+    - fct_leave_daily
+    - fct_leave_balance_snapshot
+    - fct_leave_approval
+    - fct_leave_planner
+    - fct_lieu_leave_entitlement
+    - fct_maternity_leave
+    - fct_short_leave_usage
+    - mart_leave_monthly_summary
+    - mart_leave_employee_profile
+    - mart_department_leave_heatmap
+    - fact_leave_balance
+    - vw_leave_summary
+    - vw_current_leave_balance
+    - vw_employee_leave_history
+    - vw_pending_leave_approvals
+    - vw_leave_liability
+    - vw_leave_utilization
+    - dim_leave_approval_level
+    - dim_leave_source
+    - dim_leave_status
+    - snap_leave_type
+    description: Leave applications, approvals, balances, utilization, and liability.
+  payroll:
+    keywords:
+    - payroll
+    - salary
+    - salaries
+    - wage
+    - wages
+    - pay
+    - compensation
+    - basic salary
+    - gross pay
+    - net pay
+    - payslip
+    - pay period
+    - pay component
+    - pay group
+    - epf
+    - etf
+    - tax
+    - deduction
+    - earning
+    - pay item
+    - pay period
+    - payroll summary
+    - processed payroll
+    - salary band
+    - fct
+    - processed
+    - attendance
+    - multi
+    - currency
+    - mart
+    - dynamic
+    - items
+    - horizontal
+    - paysheet
+    - core
+    - pivot
+    - column
+    - catalog
+    - reconciliation
+    - report
+    - config
+    - bank
+    - instruction
+    tables:
+    - vw_payroll_summary
+    - dim_employee
+    - dim_payroll_group
+    - snap_employee
+    - dim_canonical_pay_item
+    - dim_canonical_pay_item_seed
+    - dim_payroll_period
+    - fact_payroll
+    - fct_compliance_payroll
+    - fct_payroll_process_execution
+    - fct_processed_add_ded
+    - fct_processed_loan_deduction
+    - fct_processed_salary
+    - fct_processed_tax
+    - fct_salary_change
+    - fct_variable_pay_item
+    - mart_processed_payroll_summary
+    - mart_salary_band_summary
+    - vw_salary_bands
+    - fct_processed_attendance_payroll
+    - fct_processed_multi_currency_salary
+    - mart_dynamic_pay_items
+    - mart_horizontal_paysheet_core
+    - mart_horizontal_paysheet_dynamic
+    - mart_payroll_pivot_column_catalog
+    - mart_payroll_reconciliation
+    - payroll_report_column_config
+    - fct_salary_bank_instruction
+    description: Payroll runs, components, gross/net amounts, and pay groups.
+  benefit:
+    keywords:
+    - benefit
+    - benefits
+    - allowance
+    - insurance
+    - medical
+    - welfare
+    - earning component
+    - non cash
+    - fct
+    - noncash
+    tables:
+    - dim_employee
+    - fct_noncash_benefit
+    description: Benefit-related pay components and amounts (often via payroll component rows).
+  loan:
+    keywords:
+    - loan
+    - advance
+    - salary advance
+    - staff loan
+    - repayment
+    - installment
+    - loan balance
+    tables: []
+    description: Employee loans (add fact/dim loan tables to the mart when available in HRIS extract).
+  recruitment:
+    keywords:
+    - recruitment
+    - recruit
+    - hiring
+    - candidate
+    - applicants
+    - requisition
+    - job offer
+    - interview
+    - shortlist
+    - time to hire
+    - time to fill
+    - cost per hire
+    - pipeline stage
+    - cv
+    - linkedin
+    - referral
+    tables:
+    - dim_org_unit
+    description: Hiring funnel, candidates, sources, and requisitions.
+  performance_learning_development:
+    keywords:
+    - performance management
+    - performance review
+    - appraisal
+    - rating
+    - goal
+    - nine box
+    - review cycle
+    - learning
+    - development
+    - l&d
+    - training
+    - competency
+    tables:
+    - dim_employee
+    description: Performance reviews, ratings, cycles, and L&D outcomes on review records.
+  talent_management:
+    keywords:
+    - talent management
+    - talent
+    - succession
+    - high potential
+    - nine box grid
+    - pipeline talent
+    - internal mobility
+    tables:
+    - dim_employee
+    description: Talent signals from performance and recruitment pipeline analytics.
+  support_system:
+    keywords:
+    - support system
+    - helpdesk
+    - help desk
+    - ticket
+    - case
+    - service request
+    - hr support
+    tables: []
+    description: HR support tickets (add support fact tables when mart includes them).
+  task_management:
+    keywords:
+    - task management
+    - task
+    - tasks
+    - assignment
+    - to do
+    - workflow task
+    tables: []
+    description: HR/employee tasks (add task fact tables when mart includes them).
+  past_data:
+    keywords:
+    - past data
+    - historical
+    - history
+    - snapshot
+    - point in time
+    - trend
+    - as of date
+    - month end headcount
+    - workforce history
+    - data
+    - access
+    - rules
+    - database
+    - connections
+    - dictionary
+    tables:
+    - dim_date
+    - dim_employee
+    - data_access_rules
+    - database_connections
+    - vw_data_dictionary
+    description: Historical workforce snapshots and calendar for time-series reporting.
+dimensions:
+  employee_id:
+    table: dim_employee
+    column: employee_id
+    synonyms:
+    - emp id
+    - employee id
+    - internal employee id
+  employee_number:
+    table: mart_employee_current
+    column: emp_no
+    synonyms:
+    - emp no
+    - employee no
+    - employee number
+    - staff number
+    - emp number
+  employment_category:
+    table: mart_employee_current
+    column: employee_category
+    synonyms:
+    - employment category
+    - employee category
+    - emp category
+    - employment type label
+  hire_date:
+    table: mart_employee_current
+    column: join_date
+    synonyms:
+    - hire date
+    - join date
+    - date of joining
+    - start date
+    - joined date
+  probation_due_date:
+    table: mart_employee_current
+    column: probation_due_date
+    synonyms:
+    - probation due date
+  employee_status:
+    table: mart_employee_current
+    column: emp_status
+    synonyms:
+    - employee status
+    - emp status
+    - active status
+    - employment status current
+  manager_name:
+    table: mart_employee_current
+    column: superior_fullname
+    synonyms:
+    - manager name
+    - reporting manager name
+    - supervisor name
+    - line manager name
+  manager_employee_number:
+    table: mart_employee_current
+    column: superior_emp_no
+    synonyms:
+    - manager employee number
+    - manager emp no
+    - supervisor employee number
+  grade:
+    table: mart_employee_current
+    column: grade
+    synonyms:
+    - grade
+    - pay grade
+    - salary grade
+  payroll_period:
+    table: vw_payroll_summary
+    column: period_label
+    synonyms:
+    - pay period
+    - payroll period
+    - salary period
+    - period label
+  gross_salary:
+    table: vw_payroll_summary
+    column: gross_salary
+    synonyms:
+    - gross salary
+    - gross pay
+    - total gross
+    - gross amount
+  net_salary:
+    table: vw_payroll_summary
+    column: net_salary
+    synonyms:
+    - net salary
+    - net pay
+    - take home pay
+    - take home salary
+    - net amount
+  gross_salary_mart:
+    table: mart_processed_payroll_summary
+    column: gross_salary
+    synonyms:
+    - processed gross salary
+    - mart gross salary
+  net_salary_mart:
+    table: mart_processed_payroll_summary
+    column: net_salary
+    synonyms:
+    - processed net salary
+    - mart net salary
+  payroll_basic_salary:
+    table: vw_payroll_summary
+    column: basic_salary
+    synonyms:
+    - payroll basic salary
+    - basic salary amount
+    - basic pay amount
+  hris_employee_key:
+    table: dim_employee
+    column: source_emp_id
+    synonyms:
+    - source employee id
+    - hris employee id
+    - source emp id
+  employee_name:
+    table: mart_employee_current
+    column: emp_fullname
+    synonyms:
+    - employee name
+    - emp name
+    - full name
+    - name
+  company:
+    table: mart_employee_current
+    column: legal_entity
+    synonyms:
+    - company
+    - legal entity
+    - employer
+  payroll_group_name:
+    table: vw_payroll_summary
+    column: payroll_group_name
+    synonyms:
+    - payroll group
+    - payroll group name
+    - pay group
+    - pay group name
+  pay_frequency:
+    table: dim_payroll_group
+    column: payroll_frequency
+    synonyms:
+    - pay frequency
+    - payroll frequency
+    - frequency
+  currency_code:
+    table: dim_payroll_group
+    column: currency_code
+    synonyms:
+    - currency
+    - currency code
+  branch:
+    table: mart_employee_current
+    column: location_name
+    synonyms:
+    - branch
+    - location
+    - site
+    - office
+    - branch name
+  department:
+    table: mart_employee_current
+    column: designation_department
+    synonyms:
+    - department
+    - dept
+    - section
+    - division
+    - emp section
+  organization_unit:
+    table: mart_employee_current
+    column: emp_position
+    synonyms:
+    - organization unit
+    - org unit
+    - organisational unit
+    - ou
+    - hierarchy
+  designation:
+    table: mart_employee_current
+    column: designation
+    synonyms:
+    - designation
+    - job title
+    - title
+    - role
+    - position
+  reporting_manager:
+    table: mart_employee_current
+    column: superior_emp_no
+    synonyms:
+    - reporting manager
+    - manager id
+    - manager employee id
+    - reports to
+    - supervisor
+    - line manager
+  designation_id:
+    table: dim_employee
+    column: designation_id
+    synonyms:
+    - designation id
+    - job id
+    - title id
+    - role id
+  lifecycle_status:
+    table: dim_employee
+    column: emp_lifecycle_status
+    synonyms:
+    - lifecycle status
+    - employee lifecycle
+    - lifecycle stage
+  basic_salary:
+    table: dim_employee
+    column: basic_salary
+    synonyms:
+    - basic salary
+    - salary
+    - base pay
+    - basic pay
+  overtime_hours:
+    table: fact_attendance
+    column: overtime_hours
+    synonyms:
+    - overtime hours
+    - ot hours
+    - overtime
+    - ot
+  attendance_date:
+    table: fact_attendance
+    column: attendance_date
+    synonyms:
+    - attendance date
+    - work date
+    - punch date
+  database_name:
+    table: database_connections
+    column: database_name
+    synonyms:
+    - database name
+  connection_id:
+    table: data_access_rules
+    column: connection_id
+    synonyms:
+    - connection id
+  source_payroll_group_id:
+    table: dim_payroll_group
+    column: source_payroll_group_id
+    synonyms:
+    - source payroll group id
+  legal_entity_id:
+    table: dim_payroll_group
+    column: legal_entity_id
+    synonyms:
+    - legal entity id
+  tenant_id:
+    table: dim_payroll_group
+    column: tenant_id
+    synonyms:
+    - tenant id
+  canonical_item_name:
+    table: dim_canonical_pay_item_seed
+    column: canonical_item_name
+    synonyms:
+    - canonical item name
+  source_item_name:
+    table: dim_canonical_pay_item_seed
+    column: source_item_name
+    synonyms:
+    - source item name
+  shift_name:
+    table: dim_shift
+    column: shift_name
+    synonyms:
+    - shift name
+  source_shift_id:
+    table: dim_shift
+    column: source_shift_id
+    synonyms:
+    - source shift id
+  period_start_date:
+    table: dim_payroll_period
+    column: period_start_date
+    synonyms:
+    - period start date
+  period_end_date:
+    table: dim_payroll_period
+    column: period_end_date
+    synonyms:
+    - period end date
+  shift_id:
+    table: fact_attendance
+    column: shift_id
+    synonyms:
+    - shift id
+  source_emp_id:
+    table: fact_attendance
+    column: source_emp_id
+    synonyms:
+    - source emp id
+  effective_date:
+    table: fct_lifecycle_event
+    column: effective_date
+    synonyms:
+    - effective date
+  last_working_date:
+    table: fct_lifecycle_event
+    column: last_working_date
+    synonyms:
+    - last working date
+  parent_source_lifecycle_id:
+    table: fct_lifecycle_event
+    column: parent_source_lifecycle_id
+    synonyms:
+    - parent source lifecycle id
+  new_salary:
+    table: fct_lifecycle_event
+    column: new_salary
+    synonyms:
+    - new salary
+  source_lifecycle_id:
+    table: fct_lifecycle_event
+    column: source_lifecycle_id
+    synonyms:
+    - source lifecycle id
+  triggered_by_emp_id:
+    table: fct_lifecycle_event
+    column: triggered_by_emp_id
+    synonyms:
+    - triggered by emp id
+  approved_date:
+    table: fct_lifecycle_event
+    column: approved_date
+    synonyms:
+    - approved date
+  previous_salary:
+    table: fct_lifecycle_event
+    column: previous_salary
+    synonyms:
+    - previous salary
+  event_name:
+    table: fct_lifecycle_event
+    column: event_name
+    synonyms:
+    - event name
+  source_position_id:
+    table: fct_lifecycle_event
+    column: source_position_id
+    synonyms:
+    - source position id
+  sick_days:
+    table: fact_leave_balance
+    column: sick_days
+    synonyms:
+    - sick days
+  leave_type_id:
+    table: fact_leave_balance
+    column: leave_type_id
+    synonyms:
+    - leave type id
+  balance_days:
+    table: fact_leave_balance
+    column: balance_days
+    synonyms:
+    - balance days
+  leave_balance_type_name:
+    table: fact_leave_balance
+    column: leave_type_name
+    synonyms:
+    - leave balance type name
+  tax_amount:
+    table: mart_processed_payroll_summary
+    column: tax_amount
+    synonyms:
+    - tax amount
+  etf_amount:
+    table: mart_processed_payroll_summary
+    column: etf_amount
+    synonyms:
+    - etf amount
+  epf_employee_amount:
+    table: mart_processed_payroll_summary
+    column: epf_employee_amount
+    synonyms:
+    - epf employee amount
+  increment_amount:
+    table: mart_processed_payroll_summary
+    column: increment_amount
+    synonyms:
+    - increment amount
+  pay_cut_amount:
+    table: mart_processed_payroll_summary
+    column: pay_cut_amount
+    synonyms:
+    - pay cut amount
+  epf_employer_amount:
+    table: mart_processed_payroll_summary
+    column: epf_employer_amount
+    synonyms:
+    - epf employer amount
+  holiday_name:
+    table: fct_daily_attendance
+    column: holiday_name
+    synonyms:
+    - holiday name
+  source_atten_id:
+    table: fct_daily_attendance
+    column: source_atten_id
+    synonyms:
+    - source atten id
+  source_add_ded_id:
+    table: fct_processed_add_ded
+    column: source_add_ded_id
+    synonyms:
+    - source add ded id
+  payroll_item_name:
+    table: fct_processed_add_ded
+    column: payroll_item_name
+    synonyms:
+    - payroll item name
+  source_increment_id:
+    table: fct_salary_change
+    column: source_increment_id
+    synonyms:
+    - source increment id
+  change_amount:
+    table: fct_salary_change
+    column: change_amount
+    synonyms:
+    - change amount
+  approved_by_emp_id:
+    table: fct_salary_change
+    column: approved_by_emp_id
+    synonyms:
+    - approved by emp id
+  variable_item_name:
+    table: fct_variable_pay_item
+    column: variable_item_name
+    synonyms:
+    - variable item name
+  source_variable_id:
+    table: fct_variable_pay_item
+    column: source_variable_id
+    synonyms:
+    - source variable id
+  month_start_date:
+    table: dim_date
+    column: month_start_date
+    synonyms:
+    - month start date
+  month_end_date:
+    table: dim_date
+    column: month_end_date
+    synonyms:
+    - month end date
+  calendar_date:
+    table: dim_date
+    column: calendar_date
+    synonyms:
+    - calendar date
+  deduction_name:
+    table: fct_processed_loan_deduction
+    column: deduction_name
+    synonyms:
+    - deduction name
+  source_loan_deduction_id:
+    table: fct_processed_loan_deduction
+    column: source_loan_deduction_id
+    synonyms:
+    - source loan deduction id
+  ot_date:
+    table: fct_overtime
+    column: ot_date
+    synonyms:
+    - ot date
+  source_ot_id:
+    table: fct_overtime
+    column: source_ot_id
+    synonyms:
+    - source ot id
+  source_processed_salary_id:
+    table: fct_processed_salary
+    column: source_processed_salary_id
+    synonyms:
+    - source processed salary id
+  payroll_run_id:
+    table: fct_processed_salary
+    column: payroll_run_id
+    synonyms:
+    - payroll run id
+  source_tax_id:
+    table: fct_processed_tax
+    column: source_tax_id
+    synonyms:
+    - source tax id
+  join_date:
+    table: mart_employee_current
+    column: join_date
+    synonyms:
+    - join date
+  employment_due_date:
+    table: mart_employee_current
+    column: employment_due_date
+    synonyms:
+    - employment due date
+  emp_name:
+    table: mart_employee_current
+    column: emp_name
+    synonyms:
+    - emp name
+  location_name:
+    table: mart_employee_current
+    column: location_name
+    synonyms:
+    - location name
+  cost_center_id:
+    table: mart_employee_current
+    column: cost_center_id
+    synonyms:
+    - cost center id
+  holiday_calendar_id:
+    table: mart_employee_current
+    column: holiday_calendar_id
+    synonyms:
+    - holiday calendar id
+  latest_contract_start_date:
+    table: mart_employee_current
+    column: latest_contract_start_date
+    synonyms:
+    - latest contract start date
+  attendance_group_id:
+    table: mart_employee_current
+    column: attendance_group_id
+    synonyms:
+    - attendance group id
+  shift_group_id:
+    table: mart_employee_current
+    column: shift_group_id
+    synonyms:
+    - shift group id
+  branch_id:
+    table: mart_employee_current
+    column: branch_id
+    synonyms:
+    - branch id
+  probation_completed_date:
+    table: mart_employee_current
+    column: probation_completed_date
+    synonyms:
+    - probation completed date
+  emp_section_id:
+    table: mart_employee_current
+    column: emp_section_id
+    synonyms:
+    - emp section id
+  leave_group_id:
+    table: mart_employee_current
+    column: leave_group_id
+    synonyms:
+    - leave group id
+  latest_probation_start_date:
+    table: mart_employee_current
+    column: latest_probation_start_date
+    synonyms:
+    - latest probation start date
+  max_salary:
+    table: mart_salary_band_summary
+    column: max_salary
+    synonyms:
+    - max salary
+  min_salary:
+    table: mart_salary_band_summary
+    column: min_salary
+    synonyms:
+    - min salary
+  legal_entity_name:
+    table: mart_salary_band_summary
+    column: legal_entity_name
+    synonyms:
+    - legal entity name
+  avg_salary:
+    table: mart_salary_band_summary
+    column: avg_salary
+    synonyms:
+    - avg salary
+  grade_name:
+    table: mart_salary_band_summary
+    column: grade_name
+    synonyms:
+    - grade name
+  median_salary:
+    table: mart_salary_band_summary
+    column: median_salary
+    synonyms:
+    - median salary
+  designation_name:
+    table: mart_salary_band_summary
+    column: designation_name
+    synonyms:
+    - designation name
+  source_desig_id:
+    table: dim_designation
+    column: source_desig_id
+    synonyms:
+    - source desig id
+  department_id:
+    table: dim_designation
+    column: department_id
+    synonyms:
+    - department id
+  level_2_name:
+    table: dim_org_unit
+    column: level_2_name
+    synonyms:
+    - level 2 name
+  unit_name:
+    table: dim_org_unit
+    column: unit_name
+    synonyms:
+    - unit name
+  level_3_name:
+    table: dim_org_unit
+    column: level_3_name
+    synonyms:
+    - level 3 name
+  level_4_name:
+    table: dim_org_unit
+    column: level_4_name
+    synonyms:
+    - level 4 name
+  org_unit_name:
+    table: dim_org_unit
+    column: org_unit_name
+    synonyms:
+    - org unit name
+  parent_hierarchy_id:
+    table: dim_org_unit
+    column: parent_hierarchy_id
+    synonyms:
+    - parent hierarchy id
+  source_hierarchy_id:
+    table: dim_org_unit
+    column: source_hierarchy_id
+    synonyms:
+    - source hierarchy id
+  interdict_effective_date:
+    table: dim_employee
+    column: interdict_effective_date
+    synonyms:
+    - interdict effective date
+  retirement_date:
+    table: dim_employee
+    column: retirement_date
+    synonyms:
+    - retirement date
+  classification_3_id:
+    table: dim_employee
+    column: classification_3_id
+    synonyms:
+    - classification 3 id
+  branch_name:
+    table: dim_employee
+    column: branch_name
+    synonyms:
+    - branch name
+  classification_1_id:
+    table: dim_employee
+    column: classification_1_id
+    synonyms:
+    - classification 1 id
+  classification_2_id:
+    table: dim_employee
+    column: classification_2_id
+    synonyms:
+    - classification 2 id
+  termination_effective_date:
+    table: dim_employee
+    column: termination_effective_date
+    synonyms:
+    - termination effective date
+  deceased_effective_date:
+    table: dim_employee
+    column: deceased_effective_date
+    synonyms:
+    - deceased effective date
+  last_resigned_date:
+    table: dim_employee
+    column: last_resigned_date
+    synonyms:
+    - last resigned date
+  vacate_effective_date:
+    table: dim_employee
+    column: vacate_effective_date
+    synonyms:
+    - vacate effective date
+  resignation_effective_date:
+    table: dim_employee
+    column: resignation_effective_date
+    synonyms:
+    - resignation effective date
+  resignation_given_date:
+    table: dim_employee
+    column: resignation_given_date
+    synonyms:
+    - resignation given date
+  department_name:
+    table: dim_employee
+    column: department_name
+    synonyms:
+    - department name
+  dbt_scd_id:
+    table: dim_employee
+    column: dbt_scd_id
+    synonyms:
+    - dbt scd id
+  employee_group_id:
+    table: dim_employee
+    column: employee_group_id
+    synonyms:
+    - employee group id
+  com_hierarchy_id:
+    table: dim_employee
+    column: com_hierarchy_id
+    synonyms:
+    - com hierarchy id
+  nationality_name:
+    table: dim_employee
+    column: nationality_name
+    synonyms:
+    - nationality name
+  classification_4_id:
+    table: dim_employee
+    column: classification_4_id
+    synonyms:
+    - classification 4 id
+  is_day_salary:
+    table: dim_employee
+    column: is_day_salary
+    synonyms:
+    - is day salary
+  scheduled_days:
+    table: vw_attendance_summary
+    column: scheduled_days
+    synonyms:
+    - scheduled days
+  overtime_days:
+    table: vw_attendance_summary
+    column: overtime_days
+    synonyms:
+    - overtime days
+  present_days:
+    table: vw_attendance_summary
+    column: present_days
+    synonyms:
+    - present days
+  religion_name:
+    table: snap_employee
+    column: religion_name
+    synonyms:
+    - religion name
+  race_name:
+    table: snap_employee
+    column: race_name
+    synonyms:
+    - race name
+  ot_amount:
+    table: mart_processed_payroll_summary
+    column: ot_amount
+    synonyms:
+    - ot amount
+  output_column_name:
+    table: payroll_report_column_config
+    column: output_column_name
+    synonyms:
+    - output column name
+  source_pay_item_name:
+    table: payroll_report_column_config
+    column: source_pay_item_name
+    synonyms:
+    - source pay item name
+  min_amount:
+    table: mart_dynamic_pay_items
+    column: min_amount
+    synonyms:
+    - min amount
+  total_amount:
+    table: mart_dynamic_pay_items
+    column: total_amount
+    synonyms:
+    - total amount
+  avg_amount:
+    table: mart_dynamic_pay_items
+    column: avg_amount
+    synonyms:
+    - avg amount
+  max_amount:
+    table: mart_dynamic_pay_items
+    column: max_amount
+    synonyms:
+    - max amount
+  bonus_amount:
+    table: mart_horizontal_paysheet_dynamic
+    column: bonus_amount
+    synonyms:
+    - bonus amount
+  nopay_amount:
+    table: mart_horizontal_paysheet_dynamic
+    column: nopay_amount
+    synonyms:
+    - nopay amount
+  loan_id:
+    table: fct_processed_loan_deduction
+    column: loan_id
+    synonyms:
+    - loan id
+  installment_amount:
+    table: fct_processed_loan_deduction
+    column: installment_amount
+    synonyms:
+    - installment amount
+  installment_id:
+    table: fct_processed_loan_deduction
+    column: installment_id
+    synonyms:
+    - installment id
+  source_compliance_id:
+    table: fct_compliance_payroll
+    column: source_compliance_id
+    synonyms:
+    - source compliance id
+  compliance_salary:
+    table: fct_compliance_payroll
+    column: compliance_salary
+    synonyms:
+    - compliance salary
+  compliance_attendance_days:
+    table: fct_compliance_payroll
+    column: compliance_attendance_days
+    synonyms:
+    - compliance attendance days
+  tax_relief_amount:
+    table: fct_processed_tax
+    column: tax_relief_amount
+    synonyms:
+    - tax relief amount
+  source_noncash_benefit_id:
+    table: fct_noncash_benefit
+    column: source_noncash_benefit_id
+    synonyms:
+    - source noncash benefit id
+  benefit_name:
+    table: fct_noncash_benefit
+    column: benefit_name
+    synonyms:
+    - benefit name
+  attendance_amount:
+    table: fct_processed_attendance_payroll
+    column: attendance_amount
+    synonyms:
+    - attendance amount
+  nopay_days:
+    table: fct_processed_attendance_payroll
+    column: nopay_days
+    synonyms:
+    - nopay days
+  late_days:
+    table: fct_processed_attendance_payroll
+    column: late_days
+    synonyms:
+    - late days
+  absent_days:
+    table: fct_processed_attendance_payroll
+    column: absent_days
+    synonyms:
+    - absent days
+  attendance_days:
+    table: fct_processed_attendance_payroll
+    column: attendance_days
+    synonyms:
+    - attendance days
+  source_attendance_line_id:
+    table: fct_processed_attendance_payroll
+    column: source_attendance_line_id
+    synonyms:
+    - source attendance line id
+  payable_days:
+    table: fct_processed_attendance_payroll
+    column: payable_days
+    synonyms:
+    - payable days
+  salary_amount:
+    table: fct_processed_multi_currency_salary
+    column: salary_amount
+    synonyms:
+    - salary amount
+  converted_amount:
+    table: fct_processed_multi_currency_salary
+    column: converted_amount
+    synonyms:
+    - converted amount
+  source_multi_currency_id:
+    table: fct_processed_multi_currency_salary
+    column: source_multi_currency_id
+    synonyms:
+    - source multi currency id
+  source_salary_bank_data_id:
+    table: fct_salary_bank_instruction
+    column: source_salary_bank_data_id
+    synonyms:
+    - source salary bank data id
+  bank_passbook_name:
+    table: fct_salary_bank_instruction
+    column: bank_passbook_name
+    synonyms:
+    - bank passbook name
+  bank_amount:
+    table: fct_salary_bank_instruction
+    column: bank_amount
+    synonyms:
+    - bank amount
+  source_bank_id:
+    table: fct_salary_bank_instruction
+    column: source_bank_id
+    synonyms:
+    - source bank id
+  source_bank_branch_id:
+    table: fct_salary_bank_instruction
+    column: source_bank_branch_id
+    synonyms:
+    - source bank branch id
+  source_salary_retrieve_id:
+    table: fct_salary_bank_instruction
+    column: source_salary_retrieve_id
+    synonyms:
+    - source salary retrieve id
+  bank_name:
+    table: dim_bank
+    column: bank_name
+    synonyms:
+    - bank name
+    - bank details
+  bank_code:
+    table: dim_bank
+    column: bank_code
+    synonyms:
+    - bank code
+    - bank id code
+  source_name:
+    table: dim_leave_source
+    column: source_name
+    synonyms:
+    - source name
+  source_legal_entity_id:
+    table: dim_leave_reason
+    column: source_legal_entity_id
+    synonyms:
+    - source legal entity id
+  source_reason_id:
+    table: dim_leave_reason
+    column: source_reason_id
+    synonyms:
+    - source reason id
+  reason_name:
+    table: dim_leave_reason
+    column: reason_name
+    synonyms:
+    - reason name
+  approval_date:
+    table: fct_leave_application
+    column: approval_date
+    synonyms:
+    - approval date
+  unpaid_days:
+    table: fct_leave_application
+    column: unpaid_days
+    synonyms:
+    - unpaid days
+  source_leave_type_id:
+    table: fct_leave_application
+    column: source_leave_type_id
+    synonyms:
+    - source leave type id
+  source_application_id:
+    table: fct_leave_application
+    column: source_application_id
+    synonyms:
+    - source application id
+  end_date:
+    table: fct_leave_application
+    column: end_date
+    synonyms:
+    - end date
+  source_purpose_id:
+    table: fct_leave_application
+    column: source_purpose_id
+    synonyms:
+    - source purpose id
+  requested_days:
+    table: fct_leave_application
+    column: requested_days
+    synonyms:
+    - requested days
+  cancelled_days:
+    table: fct_leave_application
+    column: cancelled_days
+    synonyms:
+    - cancelled days
+  rejected_days:
+    table: fct_leave_application
+    column: rejected_days
+    synonyms:
+    - rejected days
+  request_date:
+    table: fct_leave_application
+    column: request_date
+    synonyms:
+    - request date
+  approved_days:
+    table: fct_leave_application
+    column: approved_days
+    synonyms:
+    - approved days
+  start_date:
+    table: fct_leave_application
+    column: start_date
+    synonyms:
+    - start date
+  status_name:
+    table: dim_leave_status
+    column: status_name
+    synonyms:
+    - status name
+  source_status_id:
+    table: dim_leave_status
+    column: source_status_id
+    synonyms:
+    - source status id
+  source_balance_id:
+    table: fct_leave_balance_snapshot
+    column: source_balance_id
+    synonyms:
+    - source balance id
+  remaining_days:
+    table: fct_leave_balance_snapshot
+    column: remaining_days
+    synonyms:
+    - remaining days
+  expiry_date:
+    table: fct_leave_balance_snapshot
+    column: expiry_date
+    synonyms:
+    - expiry date
+  earned_days:
+    table: fct_leave_balance_snapshot
+    column: earned_days
+    synonyms:
+    - earned days
+  leave_type_name:
+    table: fct_leave_balance_snapshot
+    column: leave_type_name
+    synonyms:
+    - leave type name
+  snapshot_date:
+    table: fct_leave_balance_snapshot
+    column: snapshot_date
+    synonyms:
+    - snapshot date
+  expired_days:
+    table: fct_leave_balance_snapshot
+    column: expired_days
+    synonyms:
+    - expired days
+  carry_forward_days:
+    table: fct_leave_balance_snapshot
+    column: carry_forward_days
+    synonyms:
+    - carry forward days
+  used_days:
+    table: fct_leave_balance_snapshot
+    column: used_days
+    synonyms:
+    - used days
+  pending_approval_days:
+    table: fct_leave_balance_snapshot
+    column: pending_approval_days
+    synonyms:
+    - pending approval days
+  entitled_days:
+    table: fct_leave_balance_snapshot
+    column: entitled_days
+    synonyms:
+    - entitled days
+  encashed_days:
+    table: fct_leave_balance_snapshot
+    column: encashed_days
+    synonyms:
+    - encashed days
+  adjusted_lieu_days:
+    table: fct_lieu_leave_entitlement
+    column: adjusted_lieu_days
+    synonyms:
+    - adjusted lieu days
+  paid_lieu_days:
+    table: fct_lieu_leave_entitlement
+    column: paid_lieu_days
+    synonyms:
+    - paid lieu days
+  earned_lieu_days:
+    table: fct_lieu_leave_entitlement
+    column: earned_lieu_days
+    synonyms:
+    - earned lieu days
+  source_entitlement_id:
+    table: fct_lieu_leave_entitlement
+    column: source_entitlement_id
+    synonyms:
+    - source entitlement id
+  leave_group_name:
+    table: dim_leave_type
+    column: leave_group_name
+    synonyms:
+    - leave group name
+  max_carry_forward_days:
+    table: dim_leave_type
+    column: max_carry_forward_days
+    synonyms:
+    - max carry forward days
+  first_leave_start_date:
+    table: mart_leave_employee_profile
+    column: first_leave_start_date
+    synonyms:
+    - first leave start date
+  sick_leave_days:
+    table: mart_leave_employee_profile
+    column: sick_leave_days
+    synonyms:
+    - sick leave days
+  short_leave_deducted_days:
+    table: mart_leave_employee_profile
+    column: short_leave_deducted_days
+    synonyms:
+    - short leave deducted days
+  total_requested_days:
+    table: mart_leave_employee_profile
+    column: total_requested_days
+    synonyms:
+    - total requested days
+  total_approved_days:
+    table: mart_leave_employee_profile
+    column: total_approved_days
+    synonyms:
+    - total approved days
+  ytd_approved_days:
+    table: mart_leave_employee_profile
+    column: ytd_approved_days
+    synonyms:
+    - ytd approved days
+  last_leave_start_date:
+    table: mart_leave_employee_profile
+    column: last_leave_start_date
+    synonyms:
+    - last leave start date
+  maternity_start_date:
+    table: fct_maternity_leave
+    column: maternity_start_date
+    synonyms:
+    - maternity start date
+  maternity_end_date:
+    table: fct_maternity_leave
+    column: maternity_end_date
+    synonyms:
+    - maternity end date
+  source_maternity_leave_id:
+    table: fct_maternity_leave
+    column: source_maternity_leave_id
+    synonyms:
+    - source maternity leave id
+  maternity_days:
+    table: fct_maternity_leave
+    column: maternity_days
+    synonyms:
+    - maternity days
+  expected_delivery_date:
+    table: fct_maternity_leave
+    column: expected_delivery_date
+    synonyms:
+    - expected delivery date
+  approval_level_name:
+    table: fct_leave_approval
+    column: approval_level_name
+    synonyms:
+    - approval level name
+  source_approval_id:
+    table: fct_leave_approval
+    column: source_approval_id
+    synonyms:
+    - source approval id
+  action_date:
+    table: fct_leave_approval
+    column: action_date
+    synonyms:
+    - action date
+  source_approver_emp_id:
+    table: fct_leave_approval
+    column: source_approver_emp_id
+    synonyms:
+    - source approver emp id
+  pending_leave_days:
+    table: mart_department_leave_heatmap
+    column: pending_leave_days
+    synonyms:
+    - pending leave days
+  approved_leave_days:
+    table: mart_department_leave_heatmap
+    column: approved_leave_days
+    synonyms:
+    - approved leave days
+  variance_days:
+    table: fct_leave_planner
+    column: variance_days
+    synonyms:
+    - variance days
+  source_planner_id:
+    table: fct_leave_planner
+    column: source_planner_id
+    synonyms:
+    - source planner id
+  planned_days:
+    table: fct_leave_planner
+    column: planned_days
+    synonyms:
+    - planned days
+  planned_start_date:
+    table: fct_leave_planner
+    column: planned_start_date
+    synonyms:
+    - planned start date
+  planned_end_date:
+    table: fct_leave_planner
+    column: planned_end_date
+    synonyms:
+    - planned end date
+  utilized_days:
+    table: fct_leave_planner
+    column: utilized_days
+    synonyms:
+    - utilized days
+  total_leave_days:
+    table: mart_leave_monthly_summary
+    column: total_leave_days
+    synonyms:
+    - total leave days
+  source_leave_date_id:
+    table: fct_leave_daily
+    column: source_leave_date_id
+    synonyms:
+    - source leave date id
+  leave_date:
+    table: fct_leave_daily
+    column: leave_date
+    synonyms:
+    - leave date
+  source_short_leave_id:
+    table: fct_short_leave_usage
+    column: source_short_leave_id
+    synonyms:
+    - source short leave id
+  deducted_leave_days:
+    table: fct_short_leave_usage
+    column: deducted_leave_days
+    synonyms:
+    - deducted leave days
+  short_leave_date:
+    table: fct_short_leave_usage
+    column: short_leave_date
+    synonyms:
+    - short leave date
+  level_name:
+    table: dim_leave_approval_level
+    column: level_name
+    synonyms:
+    - level name
+  field_name:
+    table: vw_data_dictionary
+    column: field_name
+    synonyms:
+    - field name
+  schema_name:
+    table: vw_data_dictionary
+    column: schema_name
+    synonyms:
+    - schema name
+  object_name:
+    table: vw_data_dictionary
+    column: object_name
+    synonyms:
+    - object name
+  total_entitled_days:
+    table: vw_leave_utilization
+    column: total_entitled_days
+    synonyms:
+    - total entitled days
+  total_remaining_days:
+    table: vw_leave_utilization
+    column: total_remaining_days
+    synonyms:
+    - total remaining days
+  total_used_days:
+    table: vw_leave_utilization
+    column: total_used_days
+    synonyms:
+    - total used days
+  leave_end_date:
+    table: vw_employee_leave_history
+    column: leave_end_date
+    synonyms:
+    - leave end date
+  leave_apply_date:
+    table: vw_employee_leave_history
+    column: leave_apply_date
+    synonyms:
+    - leave apply date
+  leave_start_date:
+    table: vw_employee_leave_history
+    column: leave_start_date
+    synonyms:
+    - leave start date
+  is_expiring_within_90_days:
+    table: vw_leave_liability
+    column: is_expiring_within_90_days
+    synonyms:
+    - is expiring within 90 days
+  liability_days:
+    table: vw_leave_liability
+    column: liability_days
+    synonyms:
+    - liability days
+  approver_name:
+    table: vw_pending_leave_approvals
+    column: approver_name
+    synonyms:
+    - approver name
+  superior_source_emp_id:
+    table: snap_employee
+    column: superior_source_emp_id
+    synonyms:
+    - superior source emp id
+metrics:
+  employee_count:
+    description: Number of employees — COUNT distinct employee_id on dim_employee (or headcount on fact_employee_snapshot
+      for a date).
+    tables:
+    - dim_employee
+    grain: employee
+    verified_sql: 'SELECT COUNT(DISTINCT employee_id) AS employee_count
+
+      FROM {schema}.dim_employee
+
+      '
+  headcount:
+    description: Active workforce count — prefer headcount from fact_employee_snapshot for a given snapshot_date; else COUNT
+      on dim_employee.
+    tables:
+    - dim_employee
+    grain: employee
+    verified_sql: 'SELECT COUNT(DISTINCT employee_id) AS headcount
+
+      FROM {schema}.dim_employee
+
+      '
+  average_salary:
+    description: Average basic salary — AVG(basic_salary) from fact_payroll_detail or dim_employee; join on employee_no or
+      employee_id as available.
+    tables:
+    - dim_employee
+    grain: employee
+  top_paid:
+    description: Rank employees by basic_salary DESC with LIMIT N on fact_payroll_detail (latest pay period) or dim_employee.
+    tables:
+    - dim_employee
+    grain: employee
+    verified_sql: 'SELECT e.full_name, p.basic_salary
+
+      FROM {schema}.dim_employee e
+
+      JOIN hr.fact_payroll_detail p ON e.employee_id = p.employee_id
+
+      ORDER BY p.basic_salary DESC NULLS LAST
+
+      LIMIT {limit}
+
+      '
+  total_gross_pay:
+    description: Sum of gross_pay from fact_payroll_detail for a pay period (filter by pay_year, pay_month, pay_period).
+    tables: []
+    grain: pay_period
+  total_net_pay:
+    description: Sum of net_pay from fact_payroll_detail for a pay period.
+    tables: []
+    grain: pay_period
+  leave_days_total:
+    description: Sum leave_days from fact_leave_transaction; filter by leave_date or leave_apply_date and leave_status_name
+      as needed.
+    tables:
+    - dim_employee
+    grain: employee
+  absent_days_count:
+    description: Count attendance rows where absent_flag is true, or sum absent days from fact_attendance.
+    tables:
+    - fact_attendance
+    - dim_employee
+    grain: employee
+  attendance_monthly_summary:
+    description: Monthly attendance KPIs per employee from vw_attendance_summary (present days, late, OT hours).
+    tables:
+    - vw_attendance_summary
+    - mart_attendance_monthly_summary
+    - dim_employee
+    grain: employee
+  attrition_count:
+    description: Count separations from vw_turnover (or fact_attrition) by period, branch, or department.
+    tables:
+    - vw_turnover
+    - fct_lifecycle_event
+    - dim_employee
+    grain: termination
+  attrition_rate:
+    description: Turnover rate (separations / active headcount * 100) by department or branch. Compute from vw_turnover and
+      vw_headcount — there is no physical attrition_rate column.
+    tables:
+    - vw_turnover
+    - vw_headcount
+    - mart_employee_current
+    grain: department
+  time_to_hire:
+    description: Average or distribution of time_to_hire_days from fact_recruitment_pipeline for filled requisitions.
+    tables: []
+    grain: requisition
+  average_performance_rating:
+    description: AVG(rating_score) or AVG(result_score) from fact_performance_review for a review cycle.
+    tables:
+    - dim_employee
+    grain: employee
+joins:
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: fct_salary_bank_instruction
+  right_column: employee_sk
+  purpose: Employee salary bank instructions (one or more accounts per employee).
+- left_table: fct_salary_bank_instruction
+  left_column: source_bank_id
+  right_table: dim_bank
+  right_column: source_bank_id
+  purpose: Resolve bank code and bank name from salary bank instruction.
+- left_table: fct_salary_bank_instruction
+  left_column: source_bank_branch_id
+  right_table: dim_bank_branch
+  right_column: source_bank_branch_id
+  purpose: Branch name for salary bank account when branch dimension is needed.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: mart_cost_to_company
+  right_column: employee_sk
+  purpose: Basic salary and total compensation (CTC) per employee.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: dim_employee
+  right_column: employee_sk
+  purpose: Current mart row to dim_employee history (same employee_sk).
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: mart_processed_payroll_summary
+  right_column: employee_sk
+  purpose: Payroll amounts per pay period for current employees.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: vw_payroll_summary
+  right_column: employee_sk
+  purpose: AI-safe payroll view (payslip-style columns) per employee and period.
+- left_table: mart_processed_payroll_summary
+  left_column: payroll_period_sk
+  right_table: dim_payroll_period
+  right_column: payroll_period_sk
+  purpose: Pay period start/end dates and labels on processed payroll.
+- left_table: fct_processed_salary
+  left_column: employee_sk
+  right_table: mart_processed_payroll_summary
+  right_column: employee_sk
+  purpose: Processed salary lines roll up to mart_processed_payroll_summary (same period_sk).
+- left_table: fct_processed_add_ded
+  left_column: employee_sk
+  right_table: mart_processed_payroll_summary
+  right_column: employee_sk
+  purpose: Allowance and deduction line items per employee and pay period.
+- left_table: fct_processed_tax
+  left_column: employee_sk
+  right_table: mart_processed_payroll_summary
+  right_column: employee_sk
+  purpose: Tax lines per employee and pay period.
+- left_table: fct_processed_loan_deduction
+  left_column: employee_sk
+  right_table: mart_processed_payroll_summary
+  right_column: employee_sk
+  purpose: Loan installment deductions per employee and pay period.
+- left_table: fct_variable_pay_item
+  left_column: employee_sk
+  right_table: mart_processed_payroll_summary
+  right_column: employee_sk
+  purpose: Variable pay items per employee and pay period.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: fact_leave_balance
+  right_column: employee_sk
+  purpose: Leave entitlement and balance by employee and leave type.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: vw_leave_summary
+  right_column: employee_sk
+  purpose: Leave utilization summary per employee and period.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: fct_daily_attendance
+  right_column: employee_sk
+  purpose: Daily attendance punches and hours per employee.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: vw_attendance_summary
+  right_column: employee_sk
+  purpose: Attendance KPIs (present days, late, OT) per employee and period.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: mart_attendance_monthly_summary
+  right_column: employee_sk
+  purpose: Monthly attendance mart per employee.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: fct_lifecycle_event
+  right_column: employee_sk
+  purpose: Hire, transfer, promotion, and separation lifecycle events.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: fct_salary_change
+  right_column: employee_sk
+  purpose: Salary increment and revision history per employee.
+- left_table: mart_employee_current
+  left_column: employee_sk
+  right_table: fct_overtime
+  right_column: employee_sk
+  purpose: Overtime requests and approved OT hours per employee.
+- left_table: dim_employee
+  left_column: source_desig_id
+  right_table: dim_designation
+  right_column: source_desig_id
+  purpose: Job title / designation name from designation dimension.
+- left_table: mart_employee_current
+  left_column: shift_id
+  right_table: dim_shift
+  right_column: source_shift_id
+  purpose: Shift name when mart shift_id maps to dim_shift (cast ids if needed).
+- left_table: data_access_rules
+  left_column: connection_id
+  right_table: database_connections
+  right_column: id
+  purpose: 'FK: data_access_rules.connection_id references database_connections.id.'
